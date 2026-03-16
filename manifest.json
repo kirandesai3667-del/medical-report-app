@@ -1,21 +1,12 @@
 {
-  "name": "Shri Batrisi Jain Medical App",
+  "background_color": "#000000",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Batrisi Medical Sahay App",
+  "orientation": "any",
+  "scope": "/",
   "short_name": "Batrisi Medical",
   "start_url": "/",
-  "display": "standalone",
-  "background_color": "#000000",
   "theme_color": "#000000",
-  "orientation": "portrait",
-  "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+  "description": "Medical report management application for Shri Batrisi Jain Co-Op Education Society members. This system allows members to apply for medical tests, committee members to approve requests, laboratories to process reports, and admin to manage records."
 }
