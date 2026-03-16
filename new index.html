@@ -1,0 +1,1987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Shri Batrisi Jain Co-Op Education Society</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- External Libraries: Excel, PDF, QR Generation, QR Scanner -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <!-- Firebase SDKs (Compat version to maintain existing code patterns) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* ================= PREMIUM UI THEME ================= */
+        :root {
+            --bg-base: #000000;
+            --bg-surface: #0a0a0a;
+            --bg-elevated: #1a1a1a;
+            --bg-glass: rgba(10, 10, 10, 0.85);
+            --text-primary: #F5F5F5;
+            --text-secondary: #A8A8A8;
+            --accent-color: #0095F6; 
+            --accent-hover: #1877F2;
+            --gradient-primary: linear-gradient(135deg, #0095F6 0%, #bc1888 100%);
+            --danger: #ED4956;
+            --success: #00ba7c;
+            --warning: #f09433;
+            --border-color: #262626;
+            --border-light: #363636;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-base); color: var(--text-primary); height: 100dvh; width: 100vw; overflow: hidden; display: flex; justify-content: center; }
+
+        /* APP WRAPPER */
+        #app-wrapper { width: 100%; max-width: 480px; height: 100%; background-color: var(--bg-base); position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
+        @media (min-width: 768px) { #app-wrapper { max-width: 100%; } }
+
+        /* SCREENS */
+        .screen { display: none; flex-direction: column; height: 100%; width: 100%; position: absolute; top: 0; left: 0; background: var(--bg-base); z-index: 10; animation: fadeIn 0.3s ease; }
+        .screen.active { display: flex; }
+        .content-area { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; scroll-behavior: smooth; }
+        .content-area::-webkit-scrollbar { display: none; }
+
+        /* GLASS HEADER */
+        .header { background: var(--bg-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 20px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 30; display: flex; justify-content: space-between; align-items: center; }
+        .header-title { font-weight: 700; font-size: 18px; letter-spacing: -0.5px; }
+        .header-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+        /* TYPOGRAPHY */
+        .brand-gradient { background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-bottom: 10px; text-align: center; }
+        h2 { font-size: 20px; font-weight: 700; margin-bottom: 15px; }
+        h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; color: var(--accent-color); }
+        h4 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+
+        /* CARDS */
+        .card { background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.2s; }
+        .card:active { transform: scale(0.99); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge.pending { background: rgba(240, 148, 51, 0.2); color: var(--warning); }
+        .badge.approved { background: rgba(0, 186, 124, 0.2); color: var(--success); }
+        .badge.declined { background: rgba(237, 73, 86, 0.2); color: var(--danger); }
+        .badge.completed { background: rgba(0, 149, 246, 0.2); color: var(--accent-color); }
+        
+        .info-group { margin-bottom: 12px; }
+        .info-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-value { font-size: 15px; font-weight: 500; color: var(--text-primary); word-break: break-word; }
+        
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .detail-label { color: var(--text-secondary); }
+
+        .section-box { background: var(--bg-surface); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border-light); }
+
+        /* FORMS & INPUTS */
+        .form-group { margin-bottom: 16px; position: relative; }
+        label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
+        input, select, textarea { width: 100%; background: var(--bg-surface); border: 1px solid var(--border-light); color: var(--text-primary); padding: 16px; border-radius: 16px; font-size: 15px; outline: none; transition: border-color 0.2s, background 0.2s; appearance: none; }
+        
+        input[type="date"] { color: var(--text-primary); cursor: pointer; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        
+        input:focus, select:focus, textarea:focus { border-color: var(--accent-color); background: var(--bg-elevated); }
+        input:read-only, textarea:read-only { opacity: 0.7; cursor: not-allowed; background: var(--bg-base); border-color: transparent; }
+        .password-wrapper { position: relative; }
+        .toggle-password { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--text-secondary); cursor: pointer; }
+        
+        .checkbox-wrapper { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .checkbox-wrapper input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent-color); }
+        .checkbox-wrapper label { margin: 0; font-size: 14px; color: var(--text-secondary); }
+
+        /* BUTTONS */
+        button { width: 100%; border: none; padding: 16px; border-radius: 16px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s, opacity 0.2s; color: #fff; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        button:active { transform: scale(0.96); }
+        .btn-primary { background: var(--accent-color); }
+        .btn-gradient { background: var(--gradient-primary); box-shadow: 0 8px 20px rgba(0, 149, 246, 0.3); }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        .btn-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text-primary); }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-small { padding: 8px 12px; font-size: 13px; border-radius: 10px; width: auto; }
+
+        /* DRAG AND DROP */
+        .dropzone { border: 2px dashed var(--border-light); border-radius: 20px; padding: 40px 20px; text-align: center; color: var(--text-secondary); background: var(--bg-surface); cursor: pointer; transition: 0.2s; }
+        .dropzone.dragover { border-color: var(--accent-color); background: rgba(0, 149, 246, 0.1); }
+        .dropzone i { font-size: 40px; margin-bottom: 10px; color: var(--text-primary); }
+
+        /* BOTTOM NAV */
+        .bottom-nav { background: var(--bg-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 15px 0 calc(15px + env(safe-area-inset-bottom)); position: absolute; bottom: 0; width: 100%; z-index: 30; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); cursor: pointer; transition: color 0.2s; width: 100%; }
+        .nav-item.active { color: var(--text-primary); }
+        .nav-item i { font-size: 26px; transition: transform 0.2s; }
+        .nav-item.active i { transform: scale(1.15); font-weight: bold; }
+        .nav-item span { font-size: 11px; margin-top: 4px; font-weight: 500; }
+
+        /* TOAST NOTIFICATION */
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: var(--bg-elevated); color: var(--text-primary); padding: 14px 24px; border-radius: 30px; font-size: 14px; font-weight: 500; border: 1px solid var(--border-light); box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 9999; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; gap: 10px; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        
+        /* GRID LAYOUT FOR ADMIN */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .action-card { background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; text-align: center; transition: background 0.2s;}
+        .action-card:hover { background: var(--bg-elevated); }
+        .action-card i { font-size: 32px; color: var(--accent-color); }
+        .action-card span { font-size: 13px; font-weight: 600; }
+
+        /* MODAL */
+        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; display: none; justify-content: center; align-items: flex-end; backdrop-filter: blur(5px); }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-surface); width: 100%; border-radius: 24px 24px 0 0; padding: 30px 20px 50px; animation: slideUp 0.3s cubic-bezier(0.1, 0.8, 0.2, 1); max-height: 85vh; overflow-y: auto; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* TABLES FOR ADMIN */
+        .table-container { width: 100%; overflow-x: auto; background: var(--bg-elevated); border-radius: 12px; border: 1px solid var(--border-color); margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+        th { background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; position: sticky; top: 0; z-index: 10;}
+        tr:hover { background: rgba(255,255,255,0.02); }
+        td { color: var(--text-primary); }
+
+        /* QR CODE STYLING */
+        .qr-wrapper { background: #fff; padding: 15px; border-radius: 12px; display: inline-block; margin-top: 10px; }
+        .img-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 12px; margin-top: 10px; border: 1px solid var(--border-light); display: none; }
+        #reader { border-radius: 16px; overflow: hidden; border: 2px solid var(--accent-color); }
+        #reader video { object-fit: cover; }
+    </style>
+</head>
+<body>
+
+<div id="app-wrapper">
+
+    <!-- TOAST -->
+    <div id="toast" class="toast"><i id="toast-icon" class="ph-fill ph-check-circle" style="color: var(--success); font-size: 20px;"></i> <span id="toast-msg">Success</span></div>
+
+    <!-- ================= LOGIN SCREEN ================= -->
+    <div id="screen-login" class="screen active" style="justify-content: center; padding: 20px; overflow-y: auto;">
+        <div style="text-align: center; margin-bottom: 30px; margin-top: auto;">
+            <i class="ph-fill ph-shield-check" style="font-size: 50px; color: var(--accent-color); margin-bottom: 10px;"></i>
+            <h1 class="brand-gradient" style="font-size: 24px;">Shri Batrisi Jain</h1>
+            <p style="color: var(--text-secondary); font-size: 12px; font-weight: 500;">Co-Op Education Society LTD</p>
+        </div>
+
+        <div class="card" style="padding: 20px;">
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Select Role</label>
+                    <select id="login-role" required onchange="handleRoleChange()">
+                        <option value="Member">Member</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Committee">Committee Member</option>
+                        <option value="Laboratory">Laboratory</option>
+                    </select>
+                </div>
+                <div class="form-group" id="login-id-group">
+                    <label id="login-id-label">Member Number</label>
+                    <input type="text" id="login-id" placeholder="Enter ID" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="login-password" placeholder="Enter Password" required>
+                        <i class="ph ph-eye toggle-password" onclick="togglePassword()"></i>
+                    </div>
+                </div>
+                <div class="checkbox-wrapper" style="margin-bottom: 20px;">
+                    <input type="checkbox" id="remember-me">
+                    <label for="remember-me">Remember Login</label>
+                </div>
+                <button type="submit" class="btn-gradient">Log In</button>
+            </form>
+        </div>
+
+        <!-- SOCIETY DETAILS FOOTER -->
+        <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin-top: auto;">
+            <b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br>
+            Sheth Shri Hiralal Hargovandas Batrishi Hall<br>
+            Near R.T.O Circle, Subhashbridge, Collector Kacheri<br>
+            Ahmedabad - 380027<br><br>
+            Phone: 079-27557668<br>
+            Mobile: +91 95864 23232<br>
+            Email: <a href="mailto:32cedusociety@gmail.com" style="color: var(--accent-color); text-decoration: none;">32cedusociety@gmail.com</a><br><br>
+            GSTIN: 24AAATS6070J1ZE<br>
+            Reg No: GH/230<br>
+            Reg Date: 10/10/1944
+        </div>
+    </div>
+
+    <!-- ================= ADMIN DASHBOARD ================= -->
+    <div id="screen-admin" class="screen">
+        <div class="header">
+            <div>
+                <div class="header-title">Admin Dashboard</div>
+                <div class="header-subtitle">Welcome, <span id="admin-name-display">Admin</span></div>
+            </div>
+            <i class="ph ph-sign-out" style="font-size: 24px; cursor: pointer; color: var(--danger);" onclick="logout()"></i>
+        </div>
+        <div class="content-area">
+            <div class="grid-2">
+                <div class="action-card" onclick="openModal('modal-upload-excel')">
+                    <i class="ph ph-file-xls"></i><span>Upload Excel</span>
+                </div>
+                <div class="action-card" onclick="openExportModal('csv')">
+                    <i class="ph ph-file-csv" style="color: var(--success);"></i><span>Export CSV</span>
+                </div>
+                <div class="action-card" onclick="openManageLabs()">
+                    <i class="ph ph-flask"></i><span>Manage Labs</span>
+                </div>
+                <div class="action-card" onclick="openManageCommittee()">
+                    <i class="ph ph-users-three"></i><span>Committee</span>
+                </div>
+                <div class="action-card" onclick="openAddMember()">
+                    <i class="ph ph-user-plus"></i><span>Add Member Manually</span>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div style="background: var(--bg-elevated); padding: 15px; border-radius: 16px; margin-top: 20px; border: 1px solid var(--border-color);">
+                <h3 style="margin-top: 0; color: var(--text-primary);">Filter Reports</h3>
+                <div style="display: flex; gap: 10px;">
+                    <select id="admin-filter-month" onchange="renderAdminRequests()">
+                        <option value="All">All Months</option>
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <select id="admin-filter-year" onchange="renderAdminRequests()">
+                        <option value="All">All Years</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px; margin-bottom: 10px;">
+                <h2 style="margin: 0;">Request Overview</h2>
+                <select id="admin-filter-status" style="width: auto; padding: 8px 12px; border-radius: 8px; font-size: 13px;" onchange="renderAdminRequests()">
+                    <option value="All">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Declined">Declined</option>
+                </select>
+            </div>
+
+            <!-- ADDED: ADMIN EXPORT BUTTONS -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto;">
+                <button class="btn-small btn-outline" style="border-color: var(--success); color: var(--success);" onclick="executeNewExport('excel')"><i class="ph ph-file-xls"></i> Export Excel</button>
+                <button class="btn-small btn-outline" style="border-color: var(--danger); color: var(--danger);" onclick="executeNewExport('pdf')"><i class="ph ph-file-pdf"></i> Export PDF</button>
+                <button class="btn-small btn-outline" style="border-color: var(--accent-color); color: var(--accent-color);" onclick="executeNewExport('csv')"><i class="ph ph-file-csv"></i> Export CSV</button>
+            </div>
+            
+            <!-- Table Container for Admin -->
+            <div class="table-container">
+                <table id="admin-request-table">
+                    <thead>
+                        <tr>
+                            <th>Token</th>
+                            <th>Status</th>
+                            <th>Patient Details</th>
+                            <th>Member Info</th>
+                            <th>Lab & Test</th>
+                            <th>Amount (Paid)</th>
+                            <th>Committee Info</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-request-list-body">
+                        <!-- Dynamic Content -->
+                    </tbody>
+                </table>
+            </div>
+            <p id="admin-empty-msg" style="text-align: center; color: var(--text-secondary); margin-top: 20px; display: none;">No requests found.</p>
+
+            <!-- SOCIETY DETAILS FOOTER -->
+            <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin-top: 30px; border-top: 1px solid var(--border-color);">
+                <b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br>
+                Sheth Shri Hiralal Hargovandas Batrishi Hall<br>
+                Near R.T.O Circle, Subhashbridge, Collector Kacheri<br>
+                Ahmedabad - 380027<br><br>
+                Phone: 079-27557668<br>
+                Mobile: +91 95864 23232<br>
+                Email: <a href="mailto:32cedusociety@gmail.com" style="color: var(--accent-color); text-decoration: none;">32cedusociety@gmail.com</a><br><br>
+                GSTIN: 24AAATS6070J1ZE<br>
+                Reg No: GH/230<br>
+                Reg Date: 10/10/1944
+            </div>
+        </div>
+        <!-- Admin Bottom Nav -->
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="switchScreen('screen-admin'); renderAdminRequests('All');"><i class="ph-fill ph-squares-four"></i><span>Panel</span></div>
+            <div class="nav-item" onclick="openExportModal('csv')"><i class="ph ph-file-arrow-down"></i><span>Export</span></div>
+            <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
+        </div>
+    </div>
+
+    <!-- Modals for Admin Management -->
+    
+    <!-- Upload Excel -->
+    <div id="modal-upload-excel" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align: center;">Upload Member Database</h2>
+            <p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">Upload Excel (.xlsx/.csv) containing Member Details</p>
+            
+            <div style="background: rgba(240, 148, 51, 0.1); border: 1px solid rgba(240, 148, 51, 0.3); padding: 12px; border-radius: 12px; margin-bottom: 15px; font-size: 12px; color: var(--warning);">
+                <b>Required Columns:</b> MemberNumber, MemberName, Address, NativeName, MobileNumber
+            </div>
+
+            <div class="dropzone" id="excel-dropzone" onclick="document.getElementById('excel-file').click()">
+                <i class="ph ph-file-arrow-up"></i>
+                <div id="excel-file-name">Tap to browse or drop .csv / .xlsx file here</div>
+                <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleExcelUpload(event)">
+            </div>
+            <button class="btn-outline" style="margin-top: 20px;" onclick="closeModal('modal-upload-excel')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Manage Labs -->
+    <div id="modal-manage-labs" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align: center;">Manage Laboratories</h2>
+            <div id="admin-lab-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div>
+            <h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add New Lab</h3>
+            <form id="form-add-lab">
+                <input type="text" id="new-lab-name" placeholder="Lab Name (e.g. K.D Lab)" required>
+                <input type="text" id="new-lab-prefix" placeholder="Token Prefix (e.g. KD)" required>
+                <input type="text" id="new-lab-id" placeholder="Login ID" required>
+                <input type="text" id="new-lab-pass" placeholder="Password" required>
+                <button type="submit" class="btn-success">Save Laboratory</button>
+            </form>
+            <button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-manage-labs')">Close</button>
+        </div>
+    </div>
+
+    <!-- Manage Committee -->
+    <div id="modal-manage-committee" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align: center;">Manage Committee</h2>
+            <div id="admin-committee-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div>
+            <h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add Member</h3>
+            <form id="form-add-committee">
+                <input type="text" id="new-com-name" placeholder="Full Name" required>
+                <input type="text" id="new-com-id" placeholder="Login Username" required>
+                <input type="text" id="new-com-pass" placeholder="Password" required>
+                <button type="submit" class="btn-success">Save Committee Member</button>
+            </form>
+            <button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-manage-committee')">Close</button>
+        </div>
+    </div>
+
+    <!-- Add Member Manually -->
+    <div id="modal-add-member" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align: center;">Add Member Manually</h2>
+            <form id="form-add-member">
+                <input type="text" id="manual-mem-no" placeholder="Member Number (e.g. M123)" required style="text-transform: uppercase;">
+                <input type="text" id="manual-mem-name" placeholder="Member Name" required>
+                <input type="text" id="manual-mem-address" placeholder="Address" required>
+                <input type="text" id="manual-mem-native" placeholder="Native Name" required>
+                <input type="number" id="manual-mem-mobile" placeholder="Mobile Number" required>
+                <button type="submit" class="btn-success">Save Member</button>
+            </form>
+            <button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-add-member')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Custom Export Filename -->
+    <div id="modal-export-file" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align: center;" id="export-modal-title">Export CSV Log</h2>
+            <div class="form-group">
+                <label>Enter File Name</label>
+                <input type="text" id="export-file-name" placeholder="Medical_Report_March_2026">
+            </div>
+            <!-- Hidden field to track export type -->
+            <input type="hidden" id="export-type-flag">
+            <div class="btn-group" style="width: 100%;">
+                <button class="btn-outline" onclick="closeModal('modal-export-file')">Cancel</button>
+                <button class="btn-success" onclick="executeExport()">Download</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation -->
+    <div id="modal-delete-confirm" class="modal">
+        <div class="modal-content" style="align-items: center;">
+            <i class="ph-fill ph-warning-circle" style="font-size: 50px; color: var(--danger); margin-bottom: 15px;"></i>
+            <h2 style="margin-bottom: 5px;">Delete Report?</h2>
+            <p style="text-align: center; color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">Are you sure you want to delete this report? This action cannot be undone.</p>
+            <input type="hidden" id="delete-req-id">
+            <div class="btn-group" style="width: 100%;">
+                <button class="btn-outline" onclick="closeModal('modal-delete-confirm')">Cancel</button>
+                <button class="btn-danger" onclick="executeDelete()">Confirm Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MEMBER DASHBOARD ================= -->
+    <div id="screen-member" class="screen">
+        <div class="header">
+            <div>
+                <div class="header-title">Member Hub</div>
+                <div class="header-subtitle" id="member-header-name">Welcome</div>
+            </div>
+        </div>
+        <div class="content-area" id="member-content-area">
+            <!-- Dynamic Content -->
+        </div>
+        <!-- Member Bottom Nav -->
+        <div class="bottom-nav">
+            <div class="nav-item active" id="nav-member-apply" onclick="renderMemberApply()"><i class="ph-fill ph-plus-circle"></i><span>Apply</span></div>
+            <div class="nav-item" id="nav-member-status" onclick="renderMemberStatus()"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
+            <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
+        </div>
+    </div>
+
+    <!-- ================= COMMITTEE DASHBOARD ================= -->
+    <div id="screen-committee" class="screen">
+        <div class="header">
+            <div>
+                <div class="header-title">Committee Panel</div>
+                <div class="header-subtitle" id="committee-header-name">Welcome</div>
+            </div>
+        </div>
+        <div class="content-area" id="committee-request-list">
+            <!-- Dynamic Content -->
+        </div>
+        <!-- Committee Bottom Nav -->
+        <div class="bottom-nav">
+            <div class="nav-item active"><i class="ph-fill ph-tray"></i><span>Inbox</span></div>
+            <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
+        </div>
+    </div>
+
+    <!-- Modal: Decline Reason -->
+    <div id="modal-decline" class="modal">
+        <div class="modal-content">
+            <h2>Decline Request</h2>
+            <div class="form-group">
+                <label>Reason for rejection</label>
+                <textarea id="decline-reason" rows="3" placeholder="Enter reason..."></textarea>
+            </div>
+            <input type="hidden" id="decline-request-id">
+            <div class="btn-group">
+                <button class="btn-outline" onclick="closeModal('modal-decline')">Cancel</button>
+                <button class="btn-danger" onclick="confirmDecline()">Confirm Decline</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: View ID Photo -->
+    <div id="modal-view-photo" class="modal">
+        <div class="modal-content" style="background: transparent; align-items: center; padding-bottom: 20px;">
+            <img id="full-id-photo" src="" style="max-width: 100%; max-height: 70vh; border-radius: 12px; object-fit: contain;">
+            <button class="btn-outline" style="margin-top: 20px; background: rgba(0,0,0,0.5); color: white; border: none;" onclick="closeModal('modal-view-photo')"><i class="ph ph-x"></i> Close</button>
+        </div>
+    </div>
+
+    <!-- ================= LABORATORY DASHBOARD ================= -->
+    <div id="screen-lab" class="screen">
+        <div class="header">
+            <div>
+                <div class="header-title">Lab Portal</div>
+                <div class="header-subtitle" id="lab-header-name">Welcome</div>
+            </div>
+        </div>
+        <div class="content-area">
+            <div class="card">
+                <h2>Search Token</h2>
+                <button class="btn-outline" onclick="startScanner()" style="margin-bottom: 15px; border-color: var(--accent-color); color: var(--accent-color);">
+                    <i class="ph ph-qr-code" style="font-size: 20px;"></i> Scan Token (Camera)
+                </button>
+                
+                <div style="text-align: center; color: var(--text-secondary); margin-bottom: 15px; font-size: 12px;">— OR ENTER MANUALLY —</div>
+
+                <div class="form-group">
+                    <input type="text" id="lab-search-token" placeholder="e.g. SAD-001" style="text-transform: uppercase;">
+                </div>
+                <button class="btn-primary" onclick="searchToken()"><i class="ph ph-magnifying-glass"></i> Search</button>
+            </div>
+            
+            <div id="lab-result-area" style="display: none;">
+                <div class="card" id="lab-request-details">
+                    <!-- Dynamic Details -->
+                </div>
+                <div class="card">
+                    <h2>Process Report</h2>
+                    <div class="form-group">
+                        <label>Billing Date</label>
+                        <input type="date" id="lab-billing-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Report Name</label>
+                        <input type="text" id="lab-report-name" placeholder="e.g. Complete Blood Count">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Report Amount (₹)</label>
+                        <input type="number" id="lab-original-amount" placeholder="0.00" oninput="calculateDiscount()">
+                    </div>
+                    <div class="form-group">
+                        <label>Discount Amount (₹) - Auto 50%</label>
+                        <input type="text" id="lab-discount-amount" value="0.00" readonly style="color: var(--warning); font-weight: bold;">
+                    </div>
+                    <div class="detail-row" style="font-size: 18px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                        <span class="detail-label" style="color: var(--text-primary);">Final Payable Amount:</span>
+                        <span id="lab-final-amount" style="font-weight: 800; color: var(--accent-color);">₹ 0.00</span>
+                    </div>
+                    <button class="btn-success" style="margin-top: 20px;" onclick="closeLabReport()">Complete & Close Report</button>
+                </div>
+            </div>
+
+            <!-- SOCIETY DETAILS FOOTER -->
+            <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin-top: 30px; border-top: 1px solid var(--border-color);">
+                <b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br>
+                Sheth Shri Hiralal Hargovandas Batrishi Hall<br>
+                Near R.T.O Circle, Subhashbridge, Collector Kacheri<br>
+                Ahmedabad - 380027<br><br>
+                Phone: 079-27557668<br>
+                Mobile: +91 95864 23232<br>
+                Email: <a href="mailto:32cedusociety@gmail.com" style="color: var(--accent-color); text-decoration: none;">32cedusociety@gmail.com</a><br><br>
+                GSTIN: 24AAATS6070J1ZE<br>
+                Reg No: GH/230<br>
+                Reg Date: 10/10/1944
+            </div>
+        </div>
+        <!-- Lab Bottom Nav -->
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="resetLabSearch()"><i class="ph-fill ph-magnifying-glass"></i><span>Search</span></div>
+            <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
+        </div>
+    </div>
+
+    <!-- Modal: QR Scanner -->
+    <div id="modal-qr-scanner" class="modal">
+        <div class="modal-content" style="align-items: center;">
+            <h2>Scan Token QR</h2>
+            <div id="reader" style="width: 100%; max-width: 400px; margin-bottom: 20px;"></div>
+            <button class="btn-danger" onclick="stopScanner()">Cancel</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ================= FIREBASE INITIALIZATION =================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCGjjBa2M42D3ir3bCLVKLCmZtBksZuvRs",
+      authDomain: "whistachat-971cd.firebaseapp.com",
+      databaseURL: "https://whistachat-971cd-default-rtdb.firebaseio.com",
+      projectId: "whistachat-971cd",
+      storageBucket: "whistachat-971cd.firebasestorage.app",
+      messagingSenderId: "908113133452",
+      appId: "1:908113133452:web:7506d7e53b299179f1e0a9"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ================= DATA CONFIGURATION =================
+    const DEFAULT_COMMITTEE = [
+        "HITENDRABHAI JASHWANTLAL SHAH", "GUNWANTLAL CHANDULAL SHAH", "MAYANKKUMAR RAMANLAL SHAH",
+        "SRUJAL PANKAJKUMAR SHAH", "PRAGNESHBHAI RAMESHCHANDRA SHAH", "HIMANSHU MAHENDRAKUMAR SHAH",
+        "ASHVINKUMAR PUNAMCHAND SHAH", "BHAVESH BIPINCHANDRA SHAH", "CHIRAGBHAI RASIKLAL SHAH",
+        "JAYESHKUMAR CHINUBHAI SHAH", "NAYANKUMAR ARVINDKUMAR SHAH", "NAILESHBHAI JAYANTILAL SHAH",
+        "PRAVINCHANDRA POPATLAL SHAH", "SANDIP MAHENDARABHAI SHAH", "SAUMILKUMAR SOMCHAND SHAH",
+        "SHRENIKKUMAR SAKARCHAND SHAH", "MINESH DEVENDRABHAI SHAH", "RAKESH BHARATBHAI SHAH", "MIHIR DINESHBHAI SHAH"
+    ];
+
+    const DEFAULT_LABS = {
+        "SADKARYA": { name: "Sadkarya Seva Sangh Rog Nidan Kendra", prefix: "SAD", loginId: "SADKARYA", password: "SAD@123" },
+        "PUKHRAJ": { name: "Sheth Shri Pukhraj Raichand General Hospital", prefix: "PUK", loginId: "PUKHRAJ", password: "PUK@123" },
+        "KD": { name: "K.D Lab", prefix: "KD", loginId: "KD", password: "KD@123" },
+        "APPOLO": { name: "Apollo Lab", prefix: "APP", loginId: "APPOLO", password: "APP@123" }
+    };
+
+    // ================= ADDED GLOBAL CONSTANTS FOR NEW FEATURES =================
+    const societyFooterHTML = `
+        <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin-top: 30px; border-top: 1px solid var(--border-color);">
+            <b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br>
+            Sheth Shri Hiralal Hargovandas Batrishi Hall<br>
+            Near R.T.O Circle, Subhashbridge, Collector Kacheri<br>
+            Ahmedabad - 380027<br><br>
+            Phone: 079-27557668<br>
+            Mobile: +91 95864 23232<br>
+            Email: <a href="mailto:32cedusociety@gmail.com" style="color: var(--accent-color); text-decoration: none;">32cedusociety@gmail.com</a><br><br>
+            GSTIN: 24AAATS6070J1ZE<br>
+            Reg No: GH/230<br>
+            Reg Date: 10/10/1944
+        </div>
+    `;
+
+    const committeeTableHTML = `
+        <div class="card" style="margin-top: 25px;">
+            <h2>Committee Members Introduction</h2>
+            <div class="table-container" style="margin-top: 10px; margin-bottom: 10px;">
+                <table style="width: 100%; min-width: 600px; font-family: 'Inter', sans-serif;">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Name</th>
+                            <th>Designation</th>
+                            <th>Native</th>
+                            <th>Mobile Number</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>HITENDRABHAI JASHWANTLAL SHAH</td><td>PRESIDENT</td><td>BAHIYAL</td><td>9825698298</td></tr>
+                        <tr><td>2</td><td>GUNWANTLAL CHANDULAL SHAH</td><td>VICE PRESIDENT</td><td>VALAD</td><td>9825441916</td></tr>
+                        <tr><td>3</td><td>MAYANKKUMAR RAMANLAL SHAH</td><td>SECRETARY</td><td>BAHIYAL</td><td>9537714100</td></tr>
+                        <tr><td>4</td><td>SRUJAL PANKAJKUMAR SHAH</td><td>VICE SECRETARY</td><td>VAHELAL</td><td>9824010710</td></tr>
+                        <tr><td>5</td><td>PRAGNESHBHAI RAMESHCHANDRA SHAH</td><td>TREASURER</td><td>PARDHOL</td><td>9426083001</td></tr>
+                        <tr><td>6</td><td>HIMANSHU MAHENDRAKUMAR SHAH</td><td>EXECUTIVE MEMBER</td><td>OGANAJ</td><td>9426084338</td></tr>
+                        <tr><td>7</td><td>ASHVINKUMAR PUNAMCHAND SHAH</td><td>EXECUTIVE MEMBER</td><td>BAHIYAL</td><td>9426327144</td></tr>
+                        <tr><td>8</td><td>BHAVESH BIPINCHANDRA SHAH</td><td>EXECUTIVE MEMBER</td><td>ADALAJ</td><td>9824313180</td></tr>
+                        <tr><td>9</td><td>CHIRAGBHAI RASIKLAL SHAH</td><td>EXECUTIVE MEMBER</td><td>OGANAJ</td><td>9898986763</td></tr>
+                        <tr><td>10</td><td>JAYESHKUMAR CHINUBHAI SHAH</td><td>EXECUTIVE MEMBER</td><td>VADODARA</td><td>9825580044</td></tr>
+                        <tr><td>11</td><td>NAYANKUMAR ARVINDKUMAR SHAH</td><td>EXECUTIVE MEMBER</td><td>NARODA</td><td>9924446767</td></tr>
+                        <tr><td>12</td><td>NAILESHBHAI JAYANTILAL SHAH</td><td>EXECUTIVE MEMBER</td><td>SANTEJ</td><td>9824499844</td></tr>
+                        <tr><td>13</td><td>PRAVINCHANDRA POPATLAL SHAH</td><td>EXECUTIVE MEMBER</td><td>PRANTIYA</td><td>9898251001</td></tr>
+                        <tr><td>14</td><td>SANDIP MAHENDARABHAI SHAH</td><td>EXECUTIVE MEMBER</td><td>PASUNJ</td><td>9327054179</td></tr>
+                        <tr><td>15</td><td>SAUMILKUMAR SOMCHAND SHAH</td><td>EXECUTIVE MEMBER</td><td>A. MUVADA</td><td>9374005997</td></tr>
+                        <tr><td>16</td><td>SHRENIKKUMAR SAKARCHAND SHAH</td><td>EXECUTIVE MEMBER</td><td>HARSOLI</td><td>9879033203</td></tr>
+                        <tr><td>17</td><td>MINESH DEVENDRABHAI SHAH</td><td>EXECUTIVE MEMBER</td><td>VALAD</td><td>9327513549</td></tr>
+                        <tr><td>18</td><td>RAKESH BHARATBHAI SHAH</td><td>EXECUTIVE MEMBER</td><td>MIROLI</td><td>9825253932</td></tr>
+                        <tr><td>19</td><td>MIHIR DINESHBHAI SHAH</td><td>EXECUTIVE MEMBER</td><td>KUBADTHAL</td><td>9909902687</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    // ================= STATE MANAGEMENT =================
+    // Local device session info remains in localStorage
+    let currentUser = JSON.parse(localStorage.getItem('sbj_user')) || null;
+    
+    // Global data pulled from Firestore real-time listeners
+    let requests = [];
+    let tokenCounters = { "SAD": 1, "PUK": 1, "KD": 1, "APP": 1 };
+    let memberDatabase = {};
+    let committeeList = DEFAULT_COMMITTEE.map(name => ({name, username: name, password: 'Bat@3232'}));
+    let labList = DEFAULT_LABS;
+
+    let activeLabRequest = null;
+    let uploadedIdPhotoBase64 = null; 
+    let html5QrcodeScanner = null;
+
+    // Real-Time Listeners establishing Firestore connection
+    db.collection('system').doc('tokens').onSnapshot(doc => {
+        if(doc.exists) tokenCounters = doc.data();
+        else db.collection('system').doc('tokens').set(tokenCounters);
+    });
+
+    db.collection('system').doc('labs').onSnapshot(doc => {
+        if(doc.exists) labList = doc.data();
+        else db.collection('system').doc('labs').set(labList);
+    });
+
+    db.collection('system').doc('committee').onSnapshot(doc => {
+        if(doc.exists) committeeList = doc.data().list || [];
+        else db.collection('system').doc('committee').set({ list: committeeList });
+    });
+
+    // Real-time listener optimized for Members Collection 
+    db.collection('members').onSnapshot(snapshot => {
+        memberDatabase = {};
+        snapshot.forEach(doc => {
+            memberDatabase[doc.id] = doc.data();
+        });
+    });
+
+    db.collection('requests').onSnapshot(snapshot => {
+        requests = snapshot.docs.map(doc => doc.data());
+        
+        // Auto Update Active Views if there are changes (Cross Device Sync)
+        if (currentUser) {
+            const adminScreen = document.getElementById('screen-admin');
+            const memberScreen = document.getElementById('screen-member');
+            const committeeScreen = document.getElementById('screen-committee');
+
+            if (adminScreen && adminScreen.classList.contains('active')) {
+                renderAdminRequests();
+            }
+            if (memberScreen && memberScreen.classList.contains('active')) {
+                const navStatus = document.getElementById('nav-member-status');
+                if (navStatus && navStatus.classList.contains('active')) {
+                    renderMemberStatus();
+                }
+            }
+            if (committeeScreen && committeeScreen.classList.contains('active')) {
+                renderCommitteeRequests();
+            }
+        }
+    });
+
+    // Initialization
+    window.onload = () => {
+        if (currentUser) {
+            routeUser(currentUser.role);
+        } else {
+            switchScreen('screen-login');
+        }
+    };
+
+    // Obsolete locally, functionality is now pushed directly to Firebase on user action
+    function saveState() { }
+
+    // ================= UTILITIES =================
+    function showToast(msg, type = 'success') {
+        const toast = document.getElementById('toast');
+        const icon = document.getElementById('toast-icon');
+        document.getElementById('toast-msg').innerText = msg;
+        
+        if(type === 'error') {
+            icon.className = 'ph-fill ph-warning-circle';
+            icon.style.color = 'var(--danger)';
+        } else {
+            icon.className = 'ph-fill ph-check-circle';
+            icon.style.color = 'var(--success)';
+        }
+
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function togglePassword() {
+        const input = document.getElementById('login-password');
+        const icon = document.querySelector('.toggle-password');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('ph-eye');
+            icon.classList.add('ph-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('ph-eye-slash');
+            icon.classList.add('ph-eye');
+        }
+    }
+
+    function generateId() { return Math.random().toString(36).substr(2, 9); }
+    
+    // Formats strictly to DD/MM/YYYY hh:mm AM/PM
+    function getCurrentDateTime() { 
+        const d = new Date();
+        const dateStr = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+        
+        let hours = d.getHours();
+        let minutes = d.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+        const timeStr = String(hours).padStart(2, '0') + ':' + minutes + ' ' + ampm;
+        
+        return `${dateStr} ${timeStr}`;
+    }
+
+    // Helper formatter to display dates ensuring they show the combined string safely
+    function displayDateTime(dStr, tStr) {
+        if (!dStr) return '-';
+        if (dStr.includes(' ')) return dStr; // New format already combined
+        return tStr ? `${dStr} ${tStr}` : dStr; // Fallback for legacy old data structure
+    }
+
+    function getDayName(dateStr) {
+        if(!dateStr) return "";
+        const datePart = dateStr.split(' ')[0]; // Ensure it handles new combined format
+        const parts = datePart.split('/');
+        if(parts.length !== 3) return "";
+        const d = new Date(parts[2], parts[1] - 1, parts[0]);
+        return d.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+    
+    function formatDateToDDMMYYYY(dateString) {
+        if (!dateString) return "";
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+    }
+
+    // NEW UTILITY: Calculate Used Grant For Current Month
+    function getUsedGrantThisMonth(memberId) {
+        const now = new Date();
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+        const currentYear = String(now.getFullYear());
+        
+        let used = 0;
+        requests.forEach(r => {
+            if (r.memberId === memberId && r.status === 'Completed' && r.labClosedDate) {
+                const datePart = r.labClosedDate.split(' ')[0]; // Expected DD/MM/YYYY
+                const parts = datePart.split('/');
+                if (parts.length >= 3) {
+                    if (parts[1] === currentMonth && parts[2] === currentYear) {
+                        used += parseFloat(r.discountAmount) || 0;
+                    }
+                }
+            }
+        });
+        return used;
+    }
+
+    function handleRoleChange() {
+        const role = document.getElementById('login-role').value;
+        const label = document.getElementById('login-id-label');
+        if(role === 'Member') label.innerText = 'Member Number';
+        else if(role === 'Admin') label.innerText = 'Email ID';
+        else if(role === 'Committee') label.innerText = 'Committee Member Username';
+        else label.innerText = 'Laboratory Login ID';
+    }
+
+    function handlePhotoUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedIdPhotoBase64 = e.target.result;
+                const preview = document.getElementById('id-photo-preview');
+                preview.src = uploadedIdPhotoBase64;
+                preview.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function viewFullPhoto(base64Str) {
+        document.getElementById('full-id-photo').src = base64Str;
+        openModal('modal-view-photo');
+    }
+
+    // ================= AUTHENTICATION =================
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const role = document.getElementById('login-role').value;
+        const id = document.getElementById('login-id').value.trim();
+        const pass = document.getElementById('login-password').value;
+
+        let authenticated = false;
+        let userData = { role, id, name: id };
+
+        if (role === 'Admin') {
+            if (id.toLowerCase() === 'kiran.desai3667@gmail.com' && pass === 'Kiran@3667') {
+                authenticated = true;
+                userData.name = "Admin Kiran";
+            }
+        } else if (role === 'Committee') {
+            const memberMatch = committeeList.find(m => m.username.toLowerCase() === id.toLowerCase());
+            if (memberMatch && pass === memberMatch.password) {
+                authenticated = true;
+                userData.name = memberMatch.name;
+            }
+        } else if (role === 'Laboratory') {
+            const labMatch = Object.values(labList).find(l => l.loginId.toUpperCase() === id.toUpperCase());
+            if (labMatch && pass === labMatch.password) {
+                authenticated = true;
+                userData.name = labMatch.name;
+                userData.labPrefix = labMatch.prefix;
+            }
+        } else if (role === 'Member') {
+            if (pass === 'Bat@123') {
+                const memberInfo = memberDatabase[id.toUpperCase()];
+                if (memberInfo) {
+                    authenticated = true;
+                    userData.name = memberInfo.name;
+                    userData.address = memberInfo.address;
+                    userData.native = memberInfo.native;
+                    userData.mobile = memberInfo.mobile;
+                } else {
+                    showToast("Member Number not found in database. Contact Admin.", "error");
+                    return; 
+                }
+            }
+        }
+
+        if (authenticated) {
+            currentUser = userData;
+            if (document.getElementById('remember-me').checked) {
+                localStorage.setItem('sbj_user', JSON.stringify(userData));
+            }
+            showToast(`Welcome, ${userData.name}`);
+            routeUser(role);
+        } else {
+            showToast("Invalid credentials!", 'error');
+        }
+    });
+
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('sbj_user'); 
+        document.getElementById('login-form').reset();
+        switchScreen('screen-login');
+    }
+
+    function routeUser(role) {
+        if (role === 'Admin') {
+            document.getElementById('admin-name-display').innerText = currentUser.name;
+            switchScreen('screen-admin');
+            renderAdminRequests('All');
+        } else if (role === 'Member') {
+            document.getElementById('member-header-name').innerText = currentUser.name;
+            switchScreen('screen-member');
+            renderMemberApply();
+        } else if (role === 'Committee') {
+            document.getElementById('committee-header-name').innerText = currentUser.name;
+            switchScreen('screen-committee');
+            renderCommitteeRequests();
+        } else if (role === 'Laboratory') {
+            document.getElementById('lab-header-name').innerText = currentUser.name;
+            switchScreen('screen-lab');
+            resetLabSearch();
+        }
+    }
+
+    // ================= ADMIN MANAGEMENT =================
+    
+    // Manage Labs
+    function openManageLabs() {
+        renderLabList();
+        openModal('modal-manage-labs');
+    }
+    function renderLabList() {
+        let html = '';
+        for(let key in labList) {
+            const lab = labList[key];
+            html += `<div class="detail-row" style="align-items:center; border-bottom:1px solid var(--border-color); padding:8px 0;">
+                <div><b style="color:var(--accent-color)">${lab.name}</b><br><span style="font-size:11px; color:var(--text-secondary)">ID: ${lab.loginId} | Pfx: ${lab.prefix} | Pass: ${lab.password}</span></div>
+                <i class="ph-fill ph-trash" style="color:var(--danger); cursor:pointer; font-size:24px;" onclick="deleteLab('${key}')"></i>
+            </div>`;
+        }
+        document.getElementById('admin-lab-list').innerHTML = html;
+    }
+    document.getElementById('form-add-lab').addEventListener('submit', e => {
+        e.preventDefault();
+        const name = document.getElementById('new-lab-name').value.trim();
+        const prefix = document.getElementById('new-lab-prefix').value.trim().toUpperCase();
+        const loginId = document.getElementById('new-lab-id').value.trim().toUpperCase();
+        const password = document.getElementById('new-lab-pass').value.trim();
+        
+        labList[loginId] = { name, prefix, loginId, password };
+        db.collection('system').doc('labs').set(labList).then(() => {
+            showToast("Lab Added!");
+            e.target.reset();
+            renderLabList();
+        });
+    });
+    function deleteLab(key) {
+        if(confirm("Delete this lab?")) {
+            delete labList[key];
+            db.collection('system').doc('labs').set(labList).then(() => {
+                renderLabList();
+            });
+        }
+    }
+
+    // Manage Committee
+    function openManageCommittee() {
+        renderCommitteeList();
+        openModal('modal-manage-committee');
+    }
+    function renderCommitteeList() {
+        let html = '';
+        committeeList.forEach((c, index) => {
+            html += `<div class="detail-row" style="align-items:center; border-bottom:1px solid var(--border-color); padding:8px 0;">
+                <div><b style="color:var(--accent-color)">${c.name}</b><br><span style="font-size:11px; color:var(--text-secondary)">User: ${c.username} | Pass: ${c.password}</span></div>
+                <i class="ph-fill ph-trash" style="color:var(--danger); cursor:pointer; font-size:24px;" onclick="deleteCommittee(${index})"></i>
+            </div>`;
+        });
+        document.getElementById('admin-committee-list').innerHTML = html;
+    }
+    document.getElementById('form-add-committee').addEventListener('submit', e => {
+        e.preventDefault();
+        const name = document.getElementById('new-com-name').value.trim();
+        const username = document.getElementById('new-com-id').value.trim();
+        const password = document.getElementById('new-com-pass').value.trim();
+        
+        committeeList.push({ name, username, password });
+        db.collection('system').doc('committee').set({ list: committeeList }).then(() => {
+            showToast("Committee Member Added!");
+            e.target.reset();
+            renderCommitteeList();
+        });
+    });
+    function deleteCommittee(index) {
+        if(confirm("Delete this member?")) {
+            committeeList.splice(index, 1);
+            db.collection('system').doc('committee').set({ list: committeeList }).then(() => {
+                renderCommitteeList();
+            });
+        }
+    }
+
+    // Manual Member Add
+    function openAddMember() {
+        openModal('modal-add-member');
+    }
+    document.getElementById('form-add-member').addEventListener('submit', e => {
+        e.preventDefault();
+        const memNo = document.getElementById('manual-mem-no').value.trim().toUpperCase();
+        const name = document.getElementById('manual-mem-name').value.trim();
+        const address = document.getElementById('manual-mem-address').value.trim();
+        const native = document.getElementById('manual-mem-native').value.trim();
+        const mobile = document.getElementById('manual-mem-mobile').value.trim();
+        
+        const data = { name, address, native, mobile };
+        db.collection('members').doc(memNo).set(data).then(() => {
+            showToast("Member Added Successfully!");
+            e.target.reset();
+            closeModal('modal-add-member');
+        }).catch(err => {
+            showToast("Failed to add member", "error");
+        });
+    });
+
+    // ================= EXCEL UPLOAD (ADMIN) =================
+    function handleExcelUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        document.getElementById('excel-file-name').innerText = `Processing: ${file.name}`;
+        
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            
+            let membersToUpload = [];
+            
+            json.forEach(row => {
+                const normalizedRow = {};
+                for(let key in row) {
+                    normalizedRow[key.toLowerCase().replace(/\s+/g, '')] = String(row[key]).trim();
+                }
+                const memNo = normalizedRow.membernumber || normalizedRow.id || normalizedRow.memberno;
+                if (memNo) {
+                    membersToUpload.push({
+                        id: memNo.toUpperCase(),
+                        data: {
+                            name: normalizedRow.name || normalizedRow.membername || "Unknown",
+                            address: normalizedRow.address || "N/A",
+                            native: normalizedRow.nativename || normalizedRow.native || "N/A",
+                            mobile: normalizedRow.mobile || normalizedRow.mobilenumber || normalizedRow.phone || "N/A"
+                        }
+                    });
+                }
+            });
+
+            if(membersToUpload.length === 0) {
+                showToast("No valid members found in file.", "error");
+                document.getElementById('excel-file-name').innerText = "Tap to browse or drop .csv / .xlsx file here";
+                return;
+            }
+
+            try {
+                // Execute Firestore Batch Writes (Max 500 per batch)
+                const chunkSize = 500;
+                for (let i = 0; i < membersToUpload.length; i += chunkSize) {
+                    const batch = db.batch();
+                    const chunk = membersToUpload.slice(i, i + chunkSize);
+                    
+                    chunk.forEach(member => {
+                        const ref = db.collection('members').doc(member.id);
+                        batch.set(ref, member.data);
+                    });
+                    
+                    await batch.commit();
+                }
+
+                showToast(`Success! Loaded ${membersToUpload.length} members.`);
+                closeModal('modal-upload-excel');
+                document.getElementById('excel-file-name').innerText = "Tap to browse or drop .csv / .xlsx file here";
+                event.target.value = ''; 
+            } catch (error) {
+                console.error("Batch upload failed: ", error);
+                showToast("Error during member upload", "error");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+
+    // ================= MEMBER LOGIC =================
+    function renderMemberApply() {
+        document.getElementById('nav-member-apply').classList.add('active');
+        document.getElementById('nav-member-status').classList.remove('active');
+        document.getElementById('nav-member-apply').querySelector('i').className = 'ph-fill ph-plus-circle';
+        document.getElementById('nav-member-status').querySelector('i').className = 'ph ph-clock-counter-clockwise';
+
+        uploadedIdPhotoBase64 = null; 
+
+        let committeeOptions = committeeList.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+        let labOptions = Object.values(labList).map(l => `<option value="${l.name}">${l.name}</option>`).join('');
+        
+        const todayDate = getCurrentDateTime();
+        
+        const html = `
+            <div class="card">
+                <h2>Apply Medical Request</h2>
+                <form id="member-request-form">
+                    
+                    <div class="form-group">
+                        <label>Request Date</label>
+                        <input type="text" id="req-date" value="${todayDate}" readonly style="background:var(--bg-base); font-weight:600; color:var(--accent-color);">
+                    </div>
+
+                    <h3>Patient Details</h3>
+                    <div class="form-group">
+                        <label>Patient Name</label>
+                        <input type="text" id="req-patient-name" placeholder="Enter Patient Name" required>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Relationship</label>
+                            <select id="req-relation" required>
+                                <option value="">Select...</option>
+                                <option value="Self">Self</option>
+                                <option value="Father">Father</option>
+                                <option value="Mother">Mother</option>
+                                <option value="Wife">Wife</option>
+                                <option value="Husband">Husband</option>
+                                <option value="Son">Son</option>
+                                <option value="Daughter">Daughter</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Age</label>
+                            <input type="number" id="req-age" placeholder="Age" min="1" max="120" required>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">Member Details</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Member Number</label>
+                            <input type="text" value="${currentUser.id}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Member Name</label>
+                            <input type="text" value="${currentUser.name}" readonly>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Address</label>
+                        <textarea rows="2" readonly>${currentUser.address}</textarea>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Native Name</label>
+                            <input type="text" value="${currentUser.native}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Mobile</label>
+                            <input type="text" value="${currentUser.mobile}" readonly>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">Medical Details</h3>
+                    <div class="form-group">
+                        <label>Select Laboratory</label>
+                        <select id="req-lab" required>
+                            <option value="">Select Lab...</option>
+                            ${labOptions}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Test Name</label>
+                        <input type="text" id="req-test" placeholder="e.g. Blood Sugar, MRI" required>
+                    </div>
+                    <div class="form-group">
+                        <label>ID Card Photo (Optional)</label>
+                        <input type="file" id="req-photo" accept="image/*" onchange="handlePhotoUpload(event)" style="background: transparent; padding: 0; border: none;">
+                        <img id="id-photo-preview" class="img-preview" src="">
+                    </div>
+
+                    <h3 style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 15px;">Approval Routing</h3>
+                    <div class="form-group">
+                        <label>Assign to Committee Member</label>
+                        <select id="req-committee" required>
+                            <option value="">Select Member...</option>
+                            ${committeeOptions}
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn-gradient" style="margin-top: 20px;">Submit Request</button>
+                </form>
+            </div>
+        `;
+        
+        // Append newly requested elements
+        document.getElementById('member-content-area').innerHTML = html + committeeTableHTML + societyFooterHTML;
+
+        document.getElementById('member-request-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // NEW MONTHLY LIMIT CHECK BEFORE APPLYING
+            const usedThisMonth = getUsedGrantThisMonth(currentUser.id);
+            if (usedThisMonth >= 2000) {
+                alert("Your Monthly Grant Of ₹2000/- From Shree Batrisi Jain Co-Op Education Society Has Already Been Fully Utilized For This Month.\nYou Will Be Able To Use The Grant Again Next Month, When The System Automatically Renews Your ₹2000 Monthly Limit.");
+                return;
+            }
+
+            const selectedDate = document.getElementById('req-date').value;
+
+            const newReq = {
+                id: generateId(),
+                memberId: currentUser.id,
+                memberName: currentUser.name,
+                address: currentUser.address,
+                native: currentUser.native,
+                mobile: currentUser.mobile,
+                
+                patientName: document.getElementById('req-patient-name').value.trim(),
+                relation: document.getElementById('req-relation').value,
+                patientAge: document.getElementById('req-age').value,
+
+                lab: document.getElementById('req-lab').value,
+                testName: document.getElementById('req-test').value,
+                idPhoto: uploadedIdPhotoBase64,
+                assignedCommittee: document.getElementById('req-committee').value,
+                status: 'Pending',
+                dateApplied: selectedDate, 
+                appliedDay: getDayName(selectedDate)
+            };
+            
+            requests.push(newReq); // Optimistic UI update
+            
+            db.collection('requests').doc(newReq.id).set(newReq).then(() => {
+                showToast("Request Submitted Successfully!");
+            });
+            renderMemberStatus();
+        });
+    }
+
+    function renderMemberStatus() {
+        document.getElementById('nav-member-status').classList.add('active');
+        document.getElementById('nav-member-apply').classList.remove('active');
+        document.getElementById('nav-member-status').querySelector('i').className = 'ph-fill ph-clock-counter-clockwise';
+        document.getElementById('nav-member-apply').querySelector('i').className = 'ph ph-plus-circle';
+
+        const myReqs = requests.filter(r => r.memberId === currentUser.id).reverse();
+        
+        // NEW MONTHLY GRANT TRACKER DISPLAY
+        const usedThisMonth = getUsedGrantThisMonth(currentUser.id);
+        const remainingThisMonth = Math.max(0, 2000 - usedThisMonth);
+        
+        let html = `
+            <div class="card" style="background: linear-gradient(135deg, rgba(0, 149, 246, 0.05) 0%, rgba(188, 24, 136, 0.05) 100%); border: 1px solid var(--accent-color);">
+                <h3 style="margin-bottom: 12px; font-size: 16px; color: var(--text-primary);">Monthly Grant Tracker</h3>
+                <div class="detail-row"><span class="detail-label">Monthly Limit:</span><span style="font-weight: bold; color: var(--text-primary);">₹ 2000.00</span></div>
+                <div class="detail-row"><span class="detail-label">Used Amount:</span><span style="font-weight: bold; color: var(--danger);">₹ ${usedThisMonth.toFixed(2)}</span></div>
+                <div class="detail-row" style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 10px;"><span class="detail-label">Remaining Amount:</span><span style="font-weight: 800; color: var(--success); font-size: 16px;">₹ ${remainingThisMonth.toFixed(2)}</span></div>
+            </div>
+            <h2>My Requests</h2>
+        `;
+        
+        if(myReqs.length === 0) {
+            html += `<p style="color:var(--text-secondary); text-align:center; margin-top:30px;">No requests found.</p>`;
+        } else {
+            myReqs.forEach(req => {
+                let statusBadge = `<span class="badge ${req.status.toLowerCase()}">${req.status}</span>`;
+                
+                let tokenHtml = '';
+                if(req.token) {
+                    tokenHtml = `
+                        <div class="detail-row" style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border-color); flex-direction:column; align-items:center; gap:10px;">
+                            <span class="detail-label">Your Lab Token:</span>
+                            <b style="color:var(--accent-color); font-size:20px; letter-spacing:1px;">${req.token}</b>
+                            <div class="qr-wrapper" id="qr-${req.id}"></div>
+                        </div>
+                    `;
+                }
+
+                let declineHtml = req.declineReason ? `<div class="detail-row" style="margin-top:10px; color:var(--danger); font-size:12px;">Reason: ${req.declineReason}</div>` : '';
+                
+                // NEW: COMPLETED REPORT DETAILS
+                let completedHtml = '';
+                if(req.status === 'Completed') {
+                    completedHtml = `
+                        <div class="section-box" style="margin-top: 15px; border-color: var(--success); background: rgba(0, 186, 124, 0.05);">
+                            <h4 style="color: var(--success); margin-bottom: 10px;">Report Completed Details</h4>
+                            <div class="detail-row"><span class="detail-label">Close Date:</span><span>${displayDateTime(req.labClosedDate, req.labClosedTime)}</span></div>
+                            <div class="detail-row"><span class="detail-label">Member Name:</span><span>${req.memberName}</span></div>
+                            <div class="detail-row"><span class="detail-label">Patient Name:</span><span>${req.patientName}</span></div>
+                            <div class="detail-row"><span class="detail-label">Report Name:</span><span>${req.reportName || req.testName}</span></div>
+                            <div class="detail-row"><span class="detail-label">Report Amount:</span><span>₹${req.originalAmount}</span></div>
+                            <div class="detail-row"><span class="detail-label">Society Discount:</span><span style="color: var(--success); font-weight: bold;">₹${req.discountAmount}</span></div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size:12px; color:var(--text-secondary)">${displayDateTime(req.dateApplied, req.timeApplied)}</span>
+                            ${statusBadge}
+                        </div>
+                        
+                        <div class="section-box">
+                            <h4>Member Details</h4>
+                            <div class="detail-row"><span class="detail-label">Name:</span><span>${req.memberName}</span></div>
+                            <div class="detail-row"><span class="detail-label">Address:</span><span style="text-align:right; max-width:60%;">${req.address}</span></div>
+                            <div class="detail-row"><span class="detail-label">Native:</span><span>${req.native}</span></div>
+                            <div class="detail-row"><span class="detail-label">Mobile:</span><span>${req.mobile}</span></div>
+                        </div>
+
+                        <div class="section-box">
+                            <h4 style="color: var(--warning);">Patient Details</h4>
+                            <div class="detail-row"><span class="detail-label">Patient:</span><span>${req.patientName}</span></div>
+                            <div class="detail-row"><span class="detail-label">Age:</span><span>${req.patientAge}</span></div>
+                            <div class="detail-row"><span class="detail-label">Relation:</span><span>${req.relation}</span></div>
+                        </div>
+
+                        <div class="detail-row"><span class="detail-label">Lab:</span><span>${req.lab}</span></div>
+                        <div class="detail-row"><span class="detail-label">Test:</span><span>${req.testName}</span></div>
+                        <div class="detail-row"><span class="detail-label">Assigned:</span><span style="text-align:right;">${req.assignedCommittee}</span></div>
+                        ${completedHtml}
+                        ${tokenHtml}
+                        ${declineHtml}
+                    </div>
+                `;
+            });
+        }
+        
+        // Append footer
+        document.getElementById('member-content-area').innerHTML = html + societyFooterHTML;
+
+        myReqs.forEach(req => {
+            if(req.token) {
+                const qrContainer = document.getElementById(`qr-${req.id}`);
+                if(qrContainer) {
+                    new QRCode(qrContainer, {
+                        text: req.token,
+                        width: 120,
+                        height: 120,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff"
+                    });
+                }
+            }
+        });
+    }
+
+    // ================= COMMITTEE LOGIC =================
+    function renderCommitteeRequests() {
+        const myTasks = requests.filter(r => r.assignedCommittee === currentUser.name && r.status === 'Pending');
+        let html = `<h2>Pending Approvals</h2>`;
+        
+        if(myTasks.length === 0) {
+            html += `<p style="color:var(--text-secondary); text-align:center; margin-top:30px;">You're all caught up!</p>`;
+        } else {
+            myTasks.forEach(req => {
+                let photoBtn = req.idPhoto ? `<button class="btn-outline" style="padding: 8px; margin-bottom: 15px; font-size: 13px;" onclick="viewFullPhoto('${req.idPhoto}')"><i class="ph ph-image"></i> View ID Photo</button>` : '';
+
+                html += `
+                    <div class="card">
+                        <div class="card-header">
+                            <b style="font-size:18px; color:var(--accent-color);">${req.patientName}</b>
+                            <span class="badge pending">Pending</span>
+                        </div>
+                        
+                        <div class="info-group">
+                            <div class="info-label">Patient Info</div>
+                            <div class="info-value">Age: ${req.patientAge} | Relation: ${req.relation}</div>
+                        </div>
+
+                        <div style="border-top: 1px solid var(--border-color); margin: 15px 0;"></div>
+
+                        <div class="info-group"><div class="info-label">Member Name</div><div class="info-value">${req.memberName} (${req.memberId})</div></div>
+                        <div class="info-group"><div class="info-label">Mobile Number</div><div class="info-value">${req.mobile}</div></div>
+                        <div class="info-group"><div class="info-label">Address</div><div class="info-value" style="font-size:13px;">${req.address}</div></div>
+                        <div class="info-group"><div class="info-label">Native Name</div><div class="info-value">${req.native}</div></div>
+
+                        <div style="border-top: 1px solid var(--border-color); margin: 15px 0;"></div>
+
+                        <div class="info-group"><div class="info-label">Laboratory Name</div><div class="info-value" style="color: var(--accent-color);">${req.lab}</div></div>
+                        <div class="info-group"><div class="info-label">Test Name</div><div class="info-value">${req.testName}</div></div>
+                        <div class="info-group"><div class="info-label">Request Date</div><div class="info-value" style="font-weight: 700;">${displayDateTime(req.dateApplied, req.timeApplied)}</div></div>
+                        
+                        ${photoBtn}
+
+                        <div class="btn-group">
+                            <button class="btn-outline" onclick="openDeclineModal('${req.id}')" style="color:var(--danger); border-color:var(--danger);">Decline</button>
+                            <button class="btn-success" onclick="approveRequest('${req.id}')">Approve</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        // Append footer
+        document.getElementById('committee-request-list').innerHTML = html + societyFooterHTML;
+    }
+
+    function approveRequest(id) {
+        const reqIndex = requests.findIndex(r => r.id === id);
+        if(reqIndex > -1) {
+            const req = requests[reqIndex];
+            let prefix = "GEN";
+            for(let key in labList) {
+                if(labList[key].name === req.lab) prefix = labList[key].prefix;
+            }
+            
+            const count = tokenCounters[prefix] || 1;
+            const token = `${prefix}-${String(count).padStart(3, '0')}`;
+            tokenCounters[prefix] = count + 1;
+
+            const appDate = getCurrentDateTime();
+            const updatedReq = {
+                ...req,
+                status: 'Approved',
+                token: token,
+                approverName: currentUser.name,
+                approvalDate: appDate,
+                approvalDay: getDayName(appDate)
+            };
+            
+            requests[reqIndex] = updatedReq; // Optimistic UI Update
+            
+            db.collection('requests').doc(id).set(updatedReq, { merge: true });
+            db.collection('system').doc('tokens').set(tokenCounters);
+            
+            showToast(`Approved! Token generated: ${token}`);
+            renderCommitteeRequests();
+        }
+    }
+
+    function openDeclineModal(id) {
+        document.getElementById('decline-request-id').value = id;
+        document.getElementById('decline-reason').value = '';
+        openModal('modal-decline');
+    }
+
+    function confirmDecline() {
+        const id = document.getElementById('decline-request-id').value;
+        const reason = document.getElementById('decline-reason').value.trim();
+        if(!reason) return showToast("Reason is required", "error");
+
+        const reqIndex = requests.findIndex(r => r.id === id);
+        if(reqIndex > -1) {
+            requests[reqIndex].status = 'Declined';
+            requests[reqIndex].declineReason = reason;
+            
+            db.collection('requests').doc(id).set({ status: 'Declined', declineReason: reason }, { merge: true }).then(() => {
+                closeModal('modal-decline');
+                showToast("Request Declined");
+                renderCommitteeRequests();
+            });
+        }
+    }
+
+    // ================= LABORATORY LOGIC =================
+    
+    function startScanner() {
+        openModal('modal-qr-scanner');
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        html5QrcodeScanner.start({ facingMode: "environment" }, config, 
+            (decodedText, decodedResult) => {
+                stopScanner();
+                document.getElementById('lab-search-token').value = decodedText;
+                showToast("QR Scanned Successfully!");
+                searchToken();
+            },
+            (errorMessage) => {}
+        ).catch(err => {
+            showToast("Camera access denied or unavailable", "error");
+            closeModal('modal-qr-scanner');
+        });
+    }
+
+    function stopScanner() {
+        if(html5QrcodeScanner) {
+            html5QrcodeScanner.stop().then(() => {
+                html5QrcodeScanner.clear();
+            }).catch(e => console.log(e));
+        }
+        closeModal('modal-qr-scanner');
+    }
+
+    function resetLabSearch() {
+        document.getElementById('lab-search-token').value = '';
+        document.getElementById('lab-result-area').style.display = 'none';
+        activeLabRequest = null;
+    }
+
+    function searchToken() {
+        const tokenStr = document.getElementById('lab-search-token').value.trim().toUpperCase();
+        if(!tokenStr) return;
+
+        const req = requests.find(r => r.token === tokenStr && r.status === 'Approved');
+        
+        if(req) {
+            activeLabRequest = req;
+            document.getElementById('lab-result-area').style.display = 'block';
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('lab-billing-date').value = today;
+
+            document.getElementById('lab-report-name').value = req.testName;
+            document.getElementById('lab-original-amount').value = '';
+            document.getElementById('lab-discount-amount').value = '0.00';
+            document.getElementById('lab-final-amount').innerText = '₹ 0.00';
+
+            const detailsHtml = `
+                <div class="card-header"><b style="font-size:18px; color:var(--accent-color);">${req.token}</b><i class="ph-fill ph-check-circle" style="color:var(--success); font-size:24px;"></i></div>
+                
+                <div class="info-group"><div class="info-label">Patient Name</div><div class="info-value" style="font-size:18px; font-weight:700;">${req.patientName} <span style="font-size:12px; font-weight:400; color:var(--text-secondary)">(${req.relation}, ${req.patientAge}y)</span></div></div>
+                <div class="info-group"><div class="info-label">Request Date</div><div class="info-value" style="font-weight: 700;">${displayDateTime(req.dateApplied, req.timeApplied)}</div></div>
+                
+                <div style="border-top: 1px solid var(--border-color); margin: 12px 0;"></div>
+
+                <div class="info-group"><div class="info-label">Member Name</div><div class="info-value">${req.memberName} (${req.memberId})</div></div>
+                <div class="info-group"><div class="info-label">Mobile Number</div><div class="info-value">${req.mobile}</div></div>
+                <div class="info-group"><div class="info-label">Address</div><div class="info-value" style="font-size:13px;">${req.address}</div></div>
+                <div class="info-group"><div class="info-label">Native Name</div><div class="info-value">${req.native}</div></div>
+                
+                <div style="border-top: 1px solid var(--border-color); margin: 12px 0;"></div>
+                
+                <div class="info-group"><div class="info-label">Laboratory Name</div><div class="info-value" style="color: var(--accent-color);">${req.lab}</div></div>
+                <div class="info-group"><div class="info-label">Test Name</div><div class="info-value">${req.testName}</div></div>
+                <div class="info-group"><div class="info-label">Approved By</div><div class="info-value">${req.approverName}</div></div>
+                <div class="info-group"><div class="info-label">Approval Date & Time</div><div class="info-value">${displayDateTime(req.approvalDate, req.approvalTime)}</div></div>
+            `;
+            document.getElementById('lab-request-details').innerHTML = detailsHtml;
+        } else {
+            showToast("Invalid or Unapproved Token", "error");
+            document.getElementById('lab-result-area').style.display = 'none';
+            activeLabRequest = null;
+        }
+    }
+
+    function calculateDiscount() {
+        const amt = parseFloat(document.getElementById('lab-original-amount').value) || 0;
+        const discount = amt * 0.5; 
+        const final = amt - discount;
+        
+        document.getElementById('lab-discount-amount').value = discount.toFixed(2);
+        document.getElementById('lab-final-amount').innerText = `₹ ${final.toFixed(2)}`;
+    }
+
+    function closeLabReport() {
+        if(!activeLabRequest) return;
+        
+        const rawDate = document.getElementById('lab-billing-date').value;
+        if (!rawDate) return showToast("Please select a billing date", "error");
+        
+        const formattedBillingDate = formatDateToDDMMYYYY(rawDate);
+
+        const reportName = document.getElementById('lab-report-name').value.trim();
+        const origAmt = parseFloat(document.getElementById('lab-original-amount').value);
+        const discountAmt = parseFloat(document.getElementById('lab-discount-amount').value);
+        const finalAmt = origAmt - discountAmt;
+        
+        if(!reportName || !origAmt || origAmt <= 0) return showToast("Enter valid details", "error");
+
+        // NEW GRANT LIMIT VALIDATION ON LAB SUBMISSION
+        const usedThisMonth = getUsedGrantThisMonth(activeLabRequest.memberId);
+        if (usedThisMonth + discountAmt > 2000) {
+            return showToast("Member assistance limit is maximum ₹2000 per month.", "error");
+        }
+
+        const reqIndex = requests.findIndex(r => r.id === activeLabRequest.id);
+        
+        const closeDate = getCurrentDateTime();
+        const updatedReq = {
+            ...activeLabRequest,
+            status: 'Completed',
+            reportName: reportName,
+            billingDate: formattedBillingDate, 
+            originalAmount: origAmt,
+            discountAmount: discountAmt,
+            finalAmount: finalAmt,
+            labClosedBy: currentUser.name,
+            labClosedDate: closeDate,
+            labClosedDay: getDayName(closeDate)
+        };
+        requests[reqIndex] = updatedReq;
+        
+        db.collection('requests').doc(activeLabRequest.id).set(updatedReq, { merge: true }).then(() => {
+            showToast("Report Closed Successfully!");
+            resetLabSearch();
+        });
+    }
+
+    // ================= ADMIN LOGIC =================
+    
+    function renderAdminRequests() {
+        const filterStatus = document.getElementById('admin-filter-status') ? document.getElementById('admin-filter-status').value : 'All';
+        const filterMonth = document.getElementById('admin-filter-month') ? document.getElementById('admin-filter-month').value : 'All';
+        const filterYear = document.getElementById('admin-filter-year') ? document.getElementById('admin-filter-year').value : 'All';
+
+        let reqs = requests;
+
+        if(filterStatus !== 'All') {
+            reqs = reqs.filter(r => r.status === filterStatus);
+        }
+
+        if(filterMonth !== 'All' || filterYear !== 'All') {
+            reqs = reqs.filter(r => {
+                const dateToUse = r.status === 'Completed' ? (r.labClosedDate || r.dateApplied) : r.dateApplied;
+                if(!dateToUse) return false;
+                
+                const datePart = dateToUse.split(' ')[0]; // Handle date combined with time safely
+                const parts = datePart.split('/');
+                if(parts.length !== 3) return true; 
+                
+                const m = parts[1];
+                const y = parts[2];
+                
+                let monthMatch = (filterMonth === 'All' || m === filterMonth);
+                let yearMatch = (filterYear === 'All' || y === filterYear);
+                
+                return monthMatch && yearMatch;
+            });
+        }
+
+        reqs = reqs.reverse();
+
+        const tbody = document.getElementById('admin-request-list-body');
+        const emptyMsg = document.getElementById('admin-empty-msg');
+        
+        tbody.innerHTML = '';
+        
+        if(reqs.length === 0) {
+            emptyMsg.style.display = 'block';
+            document.querySelector('.table-container').style.display = 'none';
+        } else {
+            emptyMsg.style.display = 'none';
+            document.querySelector('.table-container').style.display = 'block';
+            
+            reqs.forEach(req => {
+                let statusBadge = `<span class="badge ${req.status.toLowerCase()}">${req.status}</span>`;
+                
+                let amountDisplay = '-';
+                if(req.status === 'Completed') {
+                    amountDisplay = `
+                        <div style="font-size:11px; color:var(--text-secondary)">Bill Date: ${req.billingDate || '-'}</div>
+                        <span style="color:var(--text-secondary); text-decoration:line-through; font-size:11px;">₹${req.originalAmount}</span> 
+                        <b style="color:var(--success)">₹${req.finalAmount}</b>
+                    `;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <b style="color:var(--text-primary)">${req.token || '-'}</b><br>
+                        <span style="font-size:11px; color:var(--text-secondary)">Req Date: ${displayDateTime(req.dateApplied, req.timeApplied)}</span>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <b style="color:var(--accent-color)">${req.patientName}</b> <span style="font-size:10px;">(${req.patientAge}y, ${req.relation})</span><br>
+                        <span style="font-size:11px; color:var(--text-secondary)">Mem: ${req.memberName} (${req.memberId})</span><br>
+                        <span style="font-size:11px; color:var(--text-secondary)">📱 ${req.mobile} | 🏠 ${req.native}</span>
+                    </td>
+                    <td>
+                        <span style="color:var(--accent-color)">${req.lab}</span><br>
+                        <b style="font-size:12px;">Test: ${req.testName}</b>
+                        ${req.reportName ? `<br><span style="font-size:11px;">Rep: ${req.reportName}</span>` : ''}
+                    </td>
+                    <td>${amountDisplay}</td>
+                    <td>
+                        <span style="font-size:12px;">${req.assignedCommittee}</span><br>
+                        <span style="font-size:11px; color:var(--text-secondary)">Req Date: ${displayDateTime(req.dateApplied, req.timeApplied)}</span>
+                        ${req.approvalDate ? `<br><span style="font-size:11px; color:var(--success)">Appr: ${displayDateTime(req.approvalDate, req.approvalTime)}</span>` : ''}
+                    </td>
+                    <td>
+                        <button style="background:transparent; border:none; color:var(--danger); font-size:24px; cursor:pointer;" onclick="confirmDelete('${req.id}')">
+                            <i class="ph-fill ph-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    function confirmDelete(id) {
+        document.getElementById('delete-req-id').value = id;
+        openModal('modal-delete-confirm');
+    }
+
+    function executeDelete() {
+        const id = document.getElementById('delete-req-id').value;
+        requests = requests.filter(r => r.id !== id);
+        
+        db.collection('requests').doc(id).delete().then(() => {
+            closeModal('modal-delete-confirm');
+            showToast("Report Deleted Permanently!");
+            renderAdminRequests(); 
+        });
+    }
+
+    // ================= ADMIN EXPORT LOGIC =================
+    
+    function openExportModal(type) {
+        document.getElementById('export-type-flag').value = 'csv';
+        
+        const filterMonth = document.getElementById('admin-filter-month') ? document.getElementById('admin-filter-month').value : 'All';
+        const filterYear = document.getElementById('admin-filter-year') ? document.getElementById('admin-filter-year').value : 'All';
+
+        let defaultName = "Medical_Report";
+        if (filterMonth !== 'All') {
+            const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            defaultName += `_${monthNames[parseInt(filterMonth)]}`;
+        }
+        if (filterYear !== 'All') {
+            defaultName += `_${filterYear}`;
+        } else {
+            defaultName += `_All`;
+        }
+
+        document.getElementById('export-file-name').value = defaultName;
+        document.getElementById('export-modal-title').innerText = `Export CSV Log`;
+        
+        openModal('modal-export-file');
+    }
+
+    // MAIN DOWNLOAD TRIGGER FUNCTION
+    function executeExport() {
+        const filterMonth = document.getElementById('admin-filter-month') ? document.getElementById('admin-filter-month').value : 'All';
+        const filterYear = document.getElementById('admin-filter-year') ? document.getElementById('admin-filter-year').value : 'All';
+        const fileNameInput = document.getElementById('export-file-name').value.trim();
+        
+        if (!fileNameInput) return showToast("File name cannot be empty", "error");
+
+        let reqs = requests;
+
+        if(filterMonth !== 'All' || filterYear !== 'All') {
+            reqs = reqs.filter(r => {
+                const dateToUse = r.status === 'Completed' ? (r.labClosedDate || r.dateApplied) : r.dateApplied;
+                if(!dateToUse) return false;
+                const datePart = dateToUse.split(' ')[0]; // Ensure split captures safe DD/MM/YYYY
+                const parts = datePart.split('/');
+                if(parts.length !== 3) return true;
+                return (filterMonth === 'All' || parts[1] === filterMonth) && (filterYear === 'All' || parts[2] === filterYear);
+            });
+        }
+
+        if(reqs.length === 0) {
+            closeModal('modal-export-file');
+            return showToast("No data to export", "error");
+        }
+
+        // Create the dataset matching all requested columns
+        const exportData = reqs.map(r => ({
+            "Token": r.token || '',
+            "Member Name": r.memberName || '',
+            "Member Number": r.memberId || '',
+            "Address": r.address || '',
+            "Native Name": r.native || '',
+            "Mobile Number": r.mobile || '',
+            "Patient Name": r.patientName || '',
+            "Patient Age": r.patientAge || '',
+            "Relationship": r.relation || '',
+            "Laboratory Name": r.lab || '',
+            "Test Name": r.testName || '',
+            "Login Date": displayDateTime(r.dateApplied, r.timeApplied),
+            "Login Day": r.appliedDay || '',
+            "Approved By": r.approverName || '',
+            "Approval Date": displayDateTime(r.approvalDate, r.approvalTime),
+            "Approval Day": r.approvalDay || '',
+            "Billing Date": r.billingDate || '',
+            "Report Name": r.reportName || '',
+            "Total Amount": r.originalAmount || 0,
+            "Discount Amount": r.discountAmount || 0,
+            "Final Paid Amount": r.finalAmount || 0,
+            "Close Date": displayDateTime(r.labClosedDate, r.labClosedTime),
+            "Close Day": r.labClosedDay || '',
+            "Status": r.status || ''
+        }));
+
+        exportToCSV(exportData, fileNameInput);
+        closeModal('modal-export-file');
+    }
+
+    // CSV EXPORT USING MULTIPLE FALLBACKS FOR ANDROID WEBVIEW COMPATIBILITY
+    function exportToCSV(data, fileName) {
+        try {
+            if (!data || data.length === 0) {
+                showToast("No data available", "error");
+                return;
+            }
+
+            const headers = Object.keys(data[0]);
+            let csv = "";
+
+            // header row
+            csv += headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(",") + "\n";
+
+            // data rows
+            data.forEach(row => {
+                csv += headers.map(h => {
+                    let val = row[h] ?? "";
+                    return `"${String(val).replace(/"/g, '""')}"`;
+                }).join(",") + "\n";
+            });
+
+            // add BOM for Excel compatibility
+            const csvContent = "\uFEFF" + csv;
+
+            // create blob
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+            // try Web Share API first (best for Android apps)
+            if (navigator.share && navigator.canShare) {
+                const file = new File([blob], fileName + ".csv", { type: "text/csv" });
+                
+                // Only use share if it explicitly supports sharing this file
+                if (navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: "Export CSV",
+                        text: "Medical Report Export"
+                    }).then(() => {
+                        showToast("CSV Exported via Share!");
+                    }).catch((err) => {
+                        console.log("Share cancelled or failed:", err);
+                    });
+                    return;
+                }
+            }
+
+            // fallback method
+            const url = URL.createObjectURL(blob);
+
+            // try download
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName + ".csv";
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // final fallback
+            setTimeout(() => {
+                window.location.href = url;
+            }, 500);
+
+            showToast("CSV Download Triggered!");
+        } catch(e) {
+            console.error(e);
+            showToast("CSV export failed", "error");
+        }
+    }
+
+    // ================= ADDED: NEW EXPORT FUNCTIONS =================
+    function executeNewExport(type) {
+        const filterStatus = document.getElementById('admin-filter-status') ? document.getElementById('admin-filter-status').value : 'All';
+        const filterMonth = document.getElementById('admin-filter-month') ? document.getElementById('admin-filter-month').value : 'All';
+        const filterYear = document.getElementById('admin-filter-year') ? document.getElementById('admin-filter-year').value : 'All';
+
+        let reqs = requests;
+
+        if(filterStatus !== 'All') {
+            reqs = reqs.filter(r => r.status === filterStatus);
+        }
+
+        if(filterMonth !== 'All' || filterYear !== 'All') {
+            reqs = reqs.filter(r => {
+                const dateToUse = r.status === 'Completed' ? (r.labClosedDate || r.dateApplied) : r.dateApplied;
+                if(!dateToUse) return false;
+                const datePart = dateToUse.split(' ')[0];
+                const parts = datePart.split('/');
+                if(parts.length !== 3) return true;
+                return (filterMonth === 'All' || parts[1] === filterMonth) && (filterYear === 'All' || parts[2] === filterYear);
+            });
+        }
+
+        if(reqs.length === 0) {
+            return showToast("No data to export", "error");
+        }
+
+        let fileName = "Medical_Report";
+        if (filterMonth !== 'All') {
+            const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            fileName += `_${monthNames[parseInt(filterMonth)]}`;
+        }
+        fileName += `_${filterYear !== 'All' ? filterYear : 'All'}`;
+
+        const exportData = reqs.map(r => ({
+            "Token": r.token || '-',
+            "Status": r.status || '-',
+            "Patient Name": r.patientName || '-',
+            "Patient Age": r.patientAge || '-',
+            "Relationship": r.relation || '-',
+            "Member Name": r.memberName || '-',
+            "Member Number": r.memberId || '-',
+            "Address": r.address || '-',
+            "Native Name": r.native || '-',
+            "Mobile Number": r.mobile || '-',
+            "Laboratory Name": r.lab || '-',
+            "Test Name": r.testName || '-',
+            "Report Name": r.reportName || '-',
+            "Original Amount": r.originalAmount || 0,
+            "Discount Amount": r.discountAmount || 0,
+            "Final Amount": r.finalAmount || 0,
+            "Billing Date": r.billingDate || '-',
+            "Login Date": displayDateTime(r.dateApplied, r.timeApplied) || '-',
+            "Approved By": r.approverName || '-',
+            "Approval Date": displayDateTime(r.approvalDate, r.approvalTime) || '-',
+            "Close Date": displayDateTime(r.labClosedDate, r.labClosedTime) || '-'
+        }));
+
+        if (type === 'csv') {
+            exportToCSV(exportData, fileName);
+        } else if (type === 'excel') {
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Reports");
+            XLSX.writeFile(wb, fileName + ".xlsx");
+            showToast("Excel Exported!");
+        } else if (type === 'pdf') {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+            
+            doc.text("Medical Reports - " + fileName, 14, 15);
+            
+            const columns = Object.keys(exportData[0]).map(k => ({ header: k, dataKey: k }));
+            
+            doc.autoTable({
+                columns: columns,
+                body: exportData,
+                startY: 20,
+                styles: { fontSize: 6, cellPadding: 1, overflow: 'linebreak' },
+                headStyles: { fillColor: [0, 149, 246] },
+                margin: { top: 20, left: 5, right: 5 },
+                theme: 'grid'
+            });
+            
+            doc.save(fileName + ".pdf");
+            showToast("PDF Exported!");
+        }
+    }
+
+</script>
+</body>
+</html>
