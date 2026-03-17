@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Shri Batrisi Jain Co-Op Education Society</title>
+    <title>Batrisi Medical Sahay</title>
     
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -168,7 +168,7 @@
     <div id="screen-login" class="screen active" style="justify-content: center; padding: 20px; overflow-y: auto;">
         <div style="text-align: center; margin-bottom: 30px; margin-top: auto;">
             <i class="ph-fill ph-shield-check" style="font-size: 50px; color: var(--accent-color); margin-bottom: 10px;"></i>
-            <h1 class="brand-gradient" style="font-size: 24px;">Shri Batrisi Jain</h1>
+            <h1 class="brand-gradient" style="font-size: 24px;">Batrisi Medical Sahay</h1>
             <p style="color: var(--text-secondary); font-size: 12px; font-weight: 500;">Co-Op Education Society LTD</p>
         </div>
 
@@ -694,8 +694,8 @@
     // Local device session info remains in localStorage
     let currentUser = JSON.parse(localStorage.getItem('sbj_user')) || null;
     
-    // Global data pulled from Firestore real-time listeners
-    let requests = [];
+    // Global data pulled from Firestore real-time listeners (and cached against refresh disappearing bugs)
+    let requests = JSON.parse(localStorage.getItem('sbj_requests_backup')) || [];
     let tokenCounters = { "SAD": 1, "PUK": 1, "KD": 1, "APP": 1 };
     let memberDatabase = {};
     let committeeList = DEFAULT_COMMITTEE.map(name => ({name, username: name, password: 'Bat@3232'}));
@@ -732,6 +732,7 @@
 
     db.collection('requests').onSnapshot(snapshot => {
         requests = snapshot.docs.map(doc => doc.data());
+        localStorage.setItem('sbj_requests_backup', JSON.stringify(requests));
         
         // Auto Update Active Views if there are changes (Cross Device Sync)
         if (currentUser) {
@@ -1199,14 +1200,10 @@
                     </div>
 
                     <h3>Patient Details</h3>
-                    <div class="form-group">
-                        <label>Surname</label>
-                        <input type="text" id="req-patient-surname" placeholder="Surname" required>
-                    </div>
                     <div class="grid-2">
                         <div class="form-group">
-                            <label>First Name</label>
-                            <input type="text" id="req-patient-firstname" placeholder="First Name" required>
+                            <label>Name</label>
+                            <input type="text" id="req-patient-firstname" placeholder="Name" required>
                         </div>
                         <div class="form-group">
                             <label>Middle Name</label>
@@ -1324,8 +1321,7 @@
             }
 
             const selectedDate = document.getElementById('req-date').value;
-            const fullPatientName = document.getElementById('req-patient-surname').value.trim() + ' ' + 
-                                    document.getElementById('req-patient-firstname').value.trim() + ' ' + 
+            const fullPatientName = document.getElementById('req-patient-firstname').value.trim() + ' ' + 
                                     document.getElementById('req-patient-middlename').value.trim();
 
             const newReq = {
@@ -1444,6 +1440,7 @@
                         <div class="detail-row"><span class="detail-label">Lab:</span><span>${req.lab}</span></div>
                         <div class="detail-row"><span class="detail-label">Doctor:</span><span>${req.doctorName || '-'}</span></div>
                         <div class="detail-row"><span class="detail-label">Assigned:</span><span style="text-align:right;">${req.assignedCommittee}</span></div>
+                        ${req.approverName ? `<div class="detail-row"><span class="detail-label">Approved By:</span><span style="text-align:right; color:var(--success);">${req.approverName}</span></div>` : ''}
                         ${rxHtml}
                         ${completedHtml}
                         ${tokenHtml}
@@ -1539,11 +1536,15 @@
             tokenCounters[prefix] = count + 1;
 
             const appDate = getCurrentDateTime();
+            
+            // Set Approver name dynamically based on who clicked
+            const approver = (currentUser && currentUser.role === 'Admin') ? 'Office Admin' : currentUser.name;
+
             const updatedReq = {
                 ...req,
                 status: 'Approved',
                 token: token,
-                approverName: currentUser.name,
+                approverName: approver,
                 approvalDate: appDate,
                 approvalDay: getDayName(appDate)
             };
@@ -1554,7 +1555,13 @@
             db.collection('system').doc('tokens').set(tokenCounters);
             
             showToast(`Approved! Token generated: ${token}`);
-            renderCommitteeRequests();
+            
+            // Re-render appropriate screen
+            if (currentUser && currentUser.role === 'Admin') {
+                renderAdminRequests();
+            } else {
+                renderCommitteeRequests();
+            }
         }
     }
 
@@ -1577,7 +1584,13 @@
             db.collection('requests').doc(id).set({ status: 'Declined', declineReason: reason }, { merge: true }).then(() => {
                 closeModal('modal-decline');
                 showToast("Request Declined");
-                renderCommitteeRequests();
+                
+                // Re-render appropriate screen
+                if (currentUser && currentUser.role === 'Admin') {
+                    renderAdminRequests();
+                } else {
+                    renderCommitteeRequests();
+                }
             });
         }
     }
@@ -1824,6 +1837,21 @@
                     `;
                 }
 
+                let actionHtml = '';
+                if (req.status === 'Pending') {
+                    actionHtml += `
+                        <div style="display:flex; flex-direction:column; gap:5px; margin-bottom:10px;">
+                            <button class="btn-success btn-small" style="padding:4px 8px; font-size:11px;" onclick="approveRequest('${req.id}')">Approve</button>
+                            <button class="btn-outline btn-small" style="padding:4px 8px; font-size:11px; color:var(--danger); border-color:var(--danger);" onclick="openDeclineModal('${req.id}')">Decline</button>
+                        </div>
+                    `;
+                }
+                actionHtml += `
+                    <button style="background:transparent; border:none; color:var(--danger); font-size:24px; cursor:pointer;" onclick="confirmDelete('${req.id}')">
+                        <i class="ph-fill ph-trash"></i>
+                    </button>
+                `;
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>
@@ -1849,9 +1877,7 @@
                         ${req.approvalDate ? `<br><span style="font-size:11px; color:var(--success)">Appr: ${displayDateTime(req.approvalDate, req.approvalTime)}</span>` : ''}
                     </td>
                     <td>
-                        <button style="background:transparent; border:none; color:var(--danger); font-size:24px; cursor:pointer;" onclick="confirmDelete('${req.id}')">
-                            <i class="ph-fill ph-trash"></i>
-                        </button>
+                        ${actionHtml}
                     </td>
                 `;
                 tbody.appendChild(tr);
