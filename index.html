@@ -299,7 +299,7 @@
                             <th>Status</th>
                             <th>Patient Details</th>
                             <th>Member Info</th>
-                            <th>Lab & Test</th>
+                            <th>Lab & Medical Details</th>
                             <th>Amount (Paid)</th>
                             <th>Committee Info</th>
                             <th>Action</th>
@@ -488,7 +488,7 @@
         </div>
     </div>
     
-    <!-- Modal: View ID Photo -->
+    <!-- Modal: View ID/Prescription Photo -->
     <div id="modal-view-photo" class="modal">
         <div class="modal-content" style="background: transparent; align-items: center; padding-bottom: 20px;">
             <img id="full-id-photo" src="" style="max-width: 100%; max-height: 70vh; border-radius: 12px; object-fit: contain;">
@@ -546,6 +546,27 @@
                         <span id="lab-final-amount" style="font-weight: 800; color: var(--accent-color);">₹ 0.00</span>
                     </div>
                     <button class="btn-success" style="margin-top: 20px;" onclick="closeLabReport()">Complete & Close Report</button>
+                </div>
+            </div>
+
+            <!-- Lab Specific Request Overview -->
+            <div id="lab-overview-section" style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <h2>Request Overview</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Token</th>
+                                <th>Status</th>
+                                <th>Patient Details</th>
+                                <th>Medical Details</th>
+                                <th>Amount (Paid)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lab-request-list-body">
+                            <!-- Dynamic Lab Request Overview Content -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -682,6 +703,7 @@
 
     let activeLabRequest = null;
     let uploadedIdPhotoBase64 = null; 
+    let uploadedPrescriptionBase64 = null;
     let html5QrcodeScanner = null;
 
     // Real-Time Listeners establishing Firestore connection
@@ -716,6 +738,7 @@
             const adminScreen = document.getElementById('screen-admin');
             const memberScreen = document.getElementById('screen-member');
             const committeeScreen = document.getElementById('screen-committee');
+            const labScreen = document.getElementById('screen-lab');
 
             if (adminScreen && adminScreen.classList.contains('active')) {
                 renderAdminRequests();
@@ -728,6 +751,9 @@
             }
             if (committeeScreen && committeeScreen.classList.contains('active')) {
                 renderCommitteeRequests();
+            }
+            if (labScreen && labScreen.classList.contains('active')) {
+                renderLabRequests();
             }
         }
     });
@@ -854,6 +880,13 @@
         else label.innerText = 'Laboratory Login ID';
     }
 
+    function handleRelationChange() {
+        const rel = document.getElementById('req-relation').value;
+        const group = document.getElementById('daughter-married-group');
+        if(rel === 'Daughter') group.style.display = 'block';
+        else group.style.display = 'none';
+    }
+
     function handlePhotoUpload(event) {
         const file = event.target.files[0];
         if (file) {
@@ -862,6 +895,20 @@
                 uploadedIdPhotoBase64 = e.target.result;
                 const preview = document.getElementById('id-photo-preview');
                 preview.src = uploadedIdPhotoBase64;
+                preview.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function handlePrescriptionUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedPrescriptionBase64 = e.target.result;
+                const preview = document.getElementById('prescription-preview');
+                preview.src = uploadedPrescriptionBase64;
                 preview.style.display = 'block';
             }
             reader.readAsDataURL(file);
@@ -1134,6 +1181,7 @@
         document.getElementById('nav-member-status').querySelector('i').className = 'ph ph-clock-counter-clockwise';
 
         uploadedIdPhotoBase64 = null; 
+        uploadedPrescriptionBase64 = null;
 
         let committeeOptions = committeeList.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
         let labOptions = Object.values(labList).map(l => `<option value="${l.name}">${l.name}</option>`).join('');
@@ -1152,13 +1200,24 @@
 
                     <h3>Patient Details</h3>
                     <div class="form-group">
-                        <label>Patient Name</label>
-                        <input type="text" id="req-patient-name" placeholder="Enter Patient Name" required>
+                        <label>Surname</label>
+                        <input type="text" id="req-patient-surname" placeholder="Surname" required>
                     </div>
                     <div class="grid-2">
                         <div class="form-group">
+                            <label>First Name</label>
+                            <input type="text" id="req-patient-firstname" placeholder="First Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Middle Name</label>
+                            <input type="text" id="req-patient-middlename" placeholder="Middle Name" required>
+                        </div>
+                    </div>
+
+                    <div class="grid-2" style="margin-top: 10px;">
+                        <div class="form-group">
                             <label>Relationship</label>
-                            <select id="req-relation" required>
+                            <select id="req-relation" required onchange="handleRelationChange()">
                                 <option value="">Select...</option>
                                 <option value="Self">Self</option>
                                 <option value="Father">Father</option>
@@ -1167,13 +1226,19 @@
                                 <option value="Husband">Husband</option>
                                 <option value="Son">Son</option>
                                 <option value="Daughter">Daughter</option>
-                                <option value="Other">Other</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Age</label>
                             <input type="number" id="req-age" placeholder="Age" min="1" max="120" required>
                         </div>
+                    </div>
+                    <div class="form-group" id="daughter-married-group" style="display:none;">
+                        <label style="color:var(--danger)">Is she married?</label>
+                        <select id="req-daughter-married">
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
                     </div>
 
                     <h3 style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">Member Details</h3>
@@ -1211,8 +1276,13 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Test Name</label>
-                        <input type="text" id="req-test" placeholder="e.g. Blood Sugar, MRI" required>
+                        <label>Doctor Name</label>
+                        <input type="text" id="req-doctor-name" placeholder="Dr. Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Doctor Description (Prescription)</label>
+                        <input type="file" id="req-prescription" accept="image/*" capture="environment" onchange="handlePrescriptionUpload(event)" style="background: transparent; padding: 0; border: none;" required>
+                        <img id="prescription-preview" class="img-preview" src="">
                     </div>
                     <div class="form-group">
                         <label>ID Card Photo (Optional)</label>
@@ -1240,14 +1310,23 @@
         document.getElementById('member-request-form').addEventListener('submit', (e) => {
             e.preventDefault();
             
+            // Check Married Daughter Logic
+            if(document.getElementById('req-relation').value === 'Daughter' && document.getElementById('req-daughter-married').value === 'Yes') {
+                alert("You are not eligible for this benefit as the daughter is married.");
+                return;
+            }
+
             // NEW MONTHLY LIMIT CHECK BEFORE APPLYING
             const usedThisMonth = getUsedGrantThisMonth(currentUser.id);
-            if (usedThisMonth >= 2000) {
-                alert("Your Monthly Grant Of ₹2000/- From Shree Batrisi Jain Co-Op Education Society Has Already Been Fully Utilized For This Month.\nYou Will Be Able To Use The Grant Again Next Month, When The System Automatically Renews Your ₹2000 Monthly Limit.");
+            if (usedThisMonth >= 1000) {
+                alert("Your Monthly Grant Of ₹1000/- From Shree Batrisi Jain Co-Op Education Society Has Already Been Fully Utilized For This Month.\nYou Will Be Able To Use The Grant Again Next Month, When The System Automatically Renews Your ₹1000 Monthly Limit.");
                 return;
             }
 
             const selectedDate = document.getElementById('req-date').value;
+            const fullPatientName = document.getElementById('req-patient-surname').value.trim() + ' ' + 
+                                    document.getElementById('req-patient-firstname').value.trim() + ' ' + 
+                                    document.getElementById('req-patient-middlename').value.trim();
 
             const newReq = {
                 id: generateId(),
@@ -1257,12 +1336,14 @@
                 native: currentUser.native,
                 mobile: currentUser.mobile,
                 
-                patientName: document.getElementById('req-patient-name').value.trim(),
+                patientName: fullPatientName,
                 relation: document.getElementById('req-relation').value,
                 patientAge: document.getElementById('req-age').value,
 
                 lab: document.getElementById('req-lab').value,
-                testName: document.getElementById('req-test').value,
+                doctorName: document.getElementById('req-doctor-name').value.trim(),
+                testName: "See Prescription", // Legacy fallback
+                prescriptionImage: uploadedPrescriptionBase64,
                 idPhoto: uploadedIdPhotoBase64,
                 assignedCommittee: document.getElementById('req-committee').value,
                 status: 'Pending',
@@ -1289,12 +1370,12 @@
         
         // NEW MONTHLY GRANT TRACKER DISPLAY
         const usedThisMonth = getUsedGrantThisMonth(currentUser.id);
-        const remainingThisMonth = Math.max(0, 2000 - usedThisMonth);
+        const remainingThisMonth = Math.max(0, 1000 - usedThisMonth);
         
         let html = `
             <div class="card" style="background: linear-gradient(135deg, rgba(0, 149, 246, 0.05) 0%, rgba(188, 24, 136, 0.05) 100%); border: 1px solid var(--accent-color);">
                 <h3 style="margin-bottom: 12px; font-size: 16px; color: var(--text-primary);">Monthly Grant Tracker</h3>
-                <div class="detail-row"><span class="detail-label">Monthly Limit:</span><span style="font-weight: bold; color: var(--text-primary);">₹ 2000.00</span></div>
+                <div class="detail-row"><span class="detail-label">Monthly Limit:</span><span style="font-weight: bold; color: var(--text-primary);">₹ 1000.00</span></div>
                 <div class="detail-row"><span class="detail-label">Used Amount:</span><span style="font-weight: bold; color: var(--danger);">₹ ${usedThisMonth.toFixed(2)}</span></div>
                 <div class="detail-row" style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 10px;"><span class="detail-label">Remaining Amount:</span><span style="font-weight: 800; color: var(--success); font-size: 16px;">₹ ${remainingThisMonth.toFixed(2)}</span></div>
             </div>
@@ -1336,6 +1417,8 @@
                     `;
                 }
 
+                let rxHtml = req.prescriptionImage ? `<button class="btn-outline btn-small" style="margin-top:10px; width:100%;" onclick="viewFullPhoto('${req.prescriptionImage}')"><i class="ph ph-file-text"></i> View Prescription</button>` : '';
+
                 html += `
                     <div class="card">
                         <div class="card-header">
@@ -1359,8 +1442,9 @@
                         </div>
 
                         <div class="detail-row"><span class="detail-label">Lab:</span><span>${req.lab}</span></div>
-                        <div class="detail-row"><span class="detail-label">Test:</span><span>${req.testName}</span></div>
+                        <div class="detail-row"><span class="detail-label">Doctor:</span><span>${req.doctorName || '-'}</span></div>
                         <div class="detail-row"><span class="detail-label">Assigned:</span><span style="text-align:right;">${req.assignedCommittee}</span></div>
+                        ${rxHtml}
                         ${completedHtml}
                         ${tokenHtml}
                         ${declineHtml}
@@ -1398,6 +1482,7 @@
         } else {
             myTasks.forEach(req => {
                 let photoBtn = req.idPhoto ? `<button class="btn-outline" style="padding: 8px; margin-bottom: 15px; font-size: 13px;" onclick="viewFullPhoto('${req.idPhoto}')"><i class="ph ph-image"></i> View ID Photo</button>` : '';
+                let rxBtn = req.prescriptionImage ? `<button class="btn-outline" style="padding: 8px; margin-bottom: 15px; font-size: 13px;" onclick="viewFullPhoto('${req.prescriptionImage}')"><i class="ph ph-file-text"></i> View Prescription</button>` : '';
 
                 html += `
                     <div class="card">
@@ -1421,10 +1506,12 @@
                         <div style="border-top: 1px solid var(--border-color); margin: 15px 0;"></div>
 
                         <div class="info-group"><div class="info-label">Laboratory Name</div><div class="info-value" style="color: var(--accent-color);">${req.lab}</div></div>
-                        <div class="info-group"><div class="info-label">Test Name</div><div class="info-value">${req.testName}</div></div>
+                        <div class="info-group"><div class="info-label">Doctor Name</div><div class="info-value">${req.doctorName || '-'}</div></div>
                         <div class="info-group"><div class="info-label">Request Date</div><div class="info-value" style="font-weight: 700;">${displayDateTime(req.dateApplied, req.timeApplied)}</div></div>
                         
-                        ${photoBtn}
+                        <div style="display:flex; gap:10px;">
+                            ${photoBtn} ${rxBtn}
+                        </div>
 
                         <div class="btn-group">
                             <button class="btn-outline" onclick="openDeclineModal('${req.id}')" style="color:var(--danger); border-color:var(--danger);">Decline</button>
@@ -1530,6 +1617,7 @@
         document.getElementById('lab-search-token').value = '';
         document.getElementById('lab-result-area').style.display = 'none';
         activeLabRequest = null;
+        renderLabRequests();
     }
 
     function searchToken() {
@@ -1545,7 +1633,7 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('lab-billing-date').value = today;
 
-            document.getElementById('lab-report-name').value = req.testName;
+            document.getElementById('lab-report-name').value = req.testName !== 'See Prescription' ? req.testName : '';
             document.getElementById('lab-original-amount').value = '';
             document.getElementById('lab-discount-amount').value = '0.00';
             document.getElementById('lab-final-amount').innerText = '₹ 0.00';
@@ -1566,7 +1654,8 @@
                 <div style="border-top: 1px solid var(--border-color); margin: 12px 0;"></div>
                 
                 <div class="info-group"><div class="info-label">Laboratory Name</div><div class="info-value" style="color: var(--accent-color);">${req.lab}</div></div>
-                <div class="info-group"><div class="info-label">Test Name</div><div class="info-value">${req.testName}</div></div>
+                <div class="info-group"><div class="info-label">Doctor Name</div><div class="info-value">${req.doctorName || '-'}</div></div>
+                ${req.prescriptionImage ? `<button class="btn-outline" style="margin: 10px 0; width: 100%;" onclick="viewFullPhoto('${req.prescriptionImage}')"><i class="ph ph-file-text"></i> View Prescription</button>` : ''}
                 <div class="info-group"><div class="info-label">Approved By</div><div class="info-value">${req.approverName}</div></div>
                 <div class="info-group"><div class="info-label">Approval Date & Time</div><div class="info-value">${displayDateTime(req.approvalDate, req.approvalTime)}</div></div>
             `;
@@ -1604,8 +1693,8 @@
 
         // NEW GRANT LIMIT VALIDATION ON LAB SUBMISSION
         const usedThisMonth = getUsedGrantThisMonth(activeLabRequest.memberId);
-        if (usedThisMonth + discountAmt > 2000) {
-            return showToast("Member assistance limit is maximum ₹2000 per month.", "error");
+        if (usedThisMonth + discountAmt > 1000) {
+            return showToast("Member assistance limit is maximum ₹1000 per month.", "error");
         }
 
         const reqIndex = requests.findIndex(r => r.id === activeLabRequest.id);
@@ -1629,6 +1718,52 @@
             showToast("Report Closed Successfully!");
             resetLabSearch();
         });
+    }
+
+    function renderLabRequests() {
+        if (!currentUser || currentUser.role !== 'Laboratory') return;
+        
+        const tbody = document.getElementById('lab-request-list-body');
+        if (!tbody) return;
+
+        const myReqs = requests.filter(r => r.lab === currentUser.name).reverse();
+        tbody.innerHTML = '';
+
+        if(myReqs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-secondary);">No requests found.</td></tr>';
+        } else {
+            myReqs.forEach(req => {
+                let statusBadge = `<span class="badge ${req.status.toLowerCase()}">${req.status}</span>`;
+                let amountDisplay = '-';
+                if(req.status === 'Completed') {
+                    amountDisplay = `
+                        <div style="font-size:11px; color:var(--text-secondary)">Bill Date: ${req.billingDate || '-'}</div>
+                        <span style="color:var(--text-secondary); text-decoration:line-through; font-size:11px;">₹${req.originalAmount}</span> 
+                        <b style="color:var(--success)">₹${req.finalAmount}</b>
+                    `;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <b style="color:var(--text-primary)">${req.token || '-'}</b><br>
+                        <span style="font-size:11px; color:var(--text-secondary)">Req Date: ${displayDateTime(req.dateApplied, req.timeApplied)}</span>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <b style="color:var(--accent-color)">${req.patientName}</b><br>
+                        <span style="font-size:10px;">(${req.patientAge}y, ${req.relation})</span>
+                    </td>
+                    <td>
+                        <b style="font-size:12px;">Dr: ${req.doctorName || '-'}</b>
+                        ${req.prescriptionImage ? `<br><button class="btn-small btn-outline" style="margin-top:5px; padding:4px 8px; font-size:10px;" onclick="viewFullPhoto('${req.prescriptionImage}')">View Rx</button>` : ''}
+                        ${req.reportName ? `<br><span style="font-size:11px;">Rep: ${req.reportName}</span>` : ''}
+                    </td>
+                    <td>${amountDisplay}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
     }
 
     // ================= ADMIN LOGIC =================
@@ -1703,7 +1838,8 @@
                     </td>
                     <td>
                         <span style="color:var(--accent-color)">${req.lab}</span><br>
-                        <b style="font-size:12px;">Test: ${req.testName}</b>
+                        <b style="font-size:12px;">Dr: ${req.doctorName || '-'}</b>
+                        ${req.prescriptionImage ? `<br><button class="btn-small btn-outline" style="margin-top:5px; padding:4px 8px; font-size:10px;" onclick="viewFullPhoto('${req.prescriptionImage}')">View Rx</button>` : ''}
                         ${req.reportName ? `<br><span style="font-size:11px;">Rep: ${req.reportName}</span>` : ''}
                     </td>
                     <td>${amountDisplay}</td>
@@ -1802,7 +1938,8 @@
             "Patient Age": r.patientAge || '',
             "Relationship": r.relation || '',
             "Laboratory Name": r.lab || '',
-            "Test Name": r.testName || '',
+            "Doctor Name": r.doctorName || '',
+            "Has Prescription Image": r.prescriptionImage ? "Yes" : "No",
             "Login Date": displayDateTime(r.dateApplied, r.timeApplied),
             "Login Day": r.appliedDay || '',
             "Approved By": r.approverName || '',
@@ -1939,8 +2076,9 @@
             "Native Name": r.native || '-',
             "Mobile Number": r.mobile || '-',
             "Laboratory Name": r.lab || '-',
-            "Test Name": r.testName || '-',
+            "Doctor Name": r.doctorName || '-',
             "Report Name": r.reportName || '-',
+            "Has Prescription": r.prescriptionImage ? "Yes" : "No",
             "Original Amount": r.originalAmount || 0,
             "Discount Amount": r.discountAmount || 0,
             "Final Amount": r.finalAmount || 0,
