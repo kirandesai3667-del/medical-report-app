@@ -676,7 +676,8 @@
 
     function updateNotifUI() {
         const roles = ['admin', 'member', 'lab'];
-        let unreadCount = notifications.filter(n => !n.read).length;
+        let filteredNotifications = notifications.filter(n => !n.user || n.user === currentUser.name);
+        let unreadCount = filteredNotifications.filter(n => !n.read).length;
 
         roles.forEach(role => {
             const list = document.getElementById(`notifList-${role}`);
@@ -684,7 +685,9 @@
             if (!list || !count) return;
 
             list.innerHTML = "";
-            notifications.forEach((n, index) => {
+            notifications
+            .filter(n => !n.user || n.user === currentUser.name) 
+            .forEach((n, index) => {
                 const li = document.createElement("li");
                 li.className = n.read ? "" : "unread";
                 li.innerHTML = `${n.message}<small>${n.date}</small>`;
@@ -708,17 +711,20 @@
         });
     }
 
-    function addNotification(message) {
-        const newNotif = {
-            message: message,
-            date: new Date().toLocaleString(),
-            read: false
-        };
-        notifications.unshift(newNotif);
-        if (notifications.length > 20) notifications.pop(); // Keep last 20
-        localStorage.setItem("sbj_notifications", JSON.stringify(notifications));
-        updateNotifUI();
-    }
+    function addNotification(message, targetUser) {
+    const newNotif = {
+        message: message,
+        date: new Date().toLocaleString(),
+        read: false,
+        user: targetUser // 🔥 IMPORTANT
+    };
+
+    notifications.unshift(newNotif);
+    if (notifications.length > 20) notifications.pop();
+
+    localStorage.setItem("sbj_notifications", JSON.stringify(notifications));
+    updateNotifUI();
+}
 
     function markAsRead(index) {
         notifications[index].read = true;
