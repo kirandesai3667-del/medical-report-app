@@ -57,6 +57,19 @@
         .header-title { font-weight: 700; font-size: 18px; letter-spacing: -0.5px; }
         .header-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
+        /* NOTIFICATION STYLES */
+        .notification-container { position: relative; }
+        .bell { font-size: 24px; cursor: pointer; position: relative; color: var(--text-primary); transition: transform 0.2s; }
+        .bell:active { transform: scale(0.9); }
+        .notif-count { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 10px; border: 2px solid var(--bg-base); }
+        .notif-dropdown { display: none; position: absolute; right: 0; top: 40px; width: 280px; background: var(--bg-elevated); color: white; border-radius: 16px; border: 1px solid var(--border-light); padding: 15px; max-height: 350px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: fadeIn 0.2s ease; }
+        .notif-dropdown h4 { margin-bottom: 12px; font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .notif-dropdown ul { list-style: none; padding: 0; }
+        .notif-dropdown li { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 13px; cursor: pointer; border-radius: 8px; transition: background 0.2s; }
+        .notif-dropdown li:hover { background: rgba(255,255,255,0.05); }
+        .notif-dropdown li.unread { background: rgba(0, 149, 246, 0.1); border-left: 3px solid var(--accent-color); }
+        .notif-dropdown li small { color: var(--text-secondary); font-size: 10px; margin-top: 4px; display: block; }
+
         /* TYPOGRAPHY */
         .brand-gradient { background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-bottom: 10px; text-align: center; }
@@ -225,7 +238,20 @@
                 <div class="header-title">Admin Dashboard</div>
                 <div class="header-subtitle">Welcome, <span id="admin-name-display">Admin</span></div>
             </div>
-            <i class="ph ph-sign-out" style="font-size: 24px; cursor: pointer; color: var(--danger);" onclick="logout()"></i>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <!-- Notification Bell -->
+                <div class="notification-container">
+                    <div class="bell" onclick="toggleNotifications()">
+                        <i class="ph ph-bell"></i>
+                        <span id="notifCount-admin" class="notif-count">0</span>
+                    </div>
+                    <div id="notifDropdown-admin" class="notif-dropdown">
+                        <h4>Notifications</h4>
+                        <ul id="notifList-admin"></ul>
+                    </div>
+                </div>
+                <i class="ph ph-sign-out" style="font-size: 24px; cursor: pointer; color: var(--danger);" onclick="logout()"></i>
+            </div>
         </div>
         <div class="content-area">
             <div class="grid-2">
@@ -443,6 +469,17 @@
                 <div class="header-title">Member Hub</div>
                 <div class="header-subtitle" id="member-header-name">Welcome</div>
             </div>
+            <!-- Notification Bell -->
+            <div class="notification-container">
+                <div class="bell" onclick="toggleNotifications()">
+                    <i class="ph ph-bell"></i>
+                    <span id="notifCount-member" class="notif-count">0</span>
+                </div>
+                <div id="notifDropdown-member" class="notif-dropdown">
+                    <h4>Notifications</h4>
+                    <ul id="notifList-member"></ul>
+                </div>
+            </div>
         </div>
         <div class="content-area" id="member-content-area">
             <!-- Dynamic Content -->
@@ -503,6 +540,17 @@
             <div>
                 <div class="header-title">Lab Portal</div>
                 <div class="header-subtitle" id="lab-header-name">Welcome</div>
+            </div>
+            <!-- Notification Bell -->
+            <div class="notification-container">
+                <div class="bell" onclick="toggleNotifications()">
+                    <i class="ph ph-bell"></i>
+                    <span id="notifCount-lab" class="notif-count">0</span>
+                </div>
+                <div id="notifDropdown-lab" class="notif-dropdown">
+                    <h4>Notifications</h4>
+                    <ul id="notifList-lab"></ul>
+                </div>
             </div>
         </div>
         <div class="content-area">
@@ -622,6 +670,68 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    // ================= NOTIFICATION LOGIC =================
+    let notifications = JSON.parse(localStorage.getItem("sbj_notifications")) || [];
+
+    function updateNotifUI() {
+        const roles = ['admin', 'member', 'lab'];
+        let unreadCount = notifications.filter(n => !n.read).length;
+
+        roles.forEach(role => {
+            const list = document.getElementById(`notifList-${role}`);
+            const count = document.getElementById(`notifCount-${role}`);
+            if (!list || !count) return;
+
+            list.innerHTML = "";
+            notifications.forEach((n, index) => {
+                const li = document.createElement("li");
+                li.className = n.read ? "" : "unread";
+                li.innerHTML = `${n.message}<small>${n.date}</small>`;
+                li.onclick = () => markAsRead(index);
+                list.appendChild(li);
+            });
+            count.innerText = unreadCount;
+            count.style.display = unreadCount > 0 ? "block" : "none";
+        });
+    }
+
+    function toggleNotifications() {
+        const roles = ['admin', 'member', 'lab'];
+        roles.forEach(role => {
+            const dropdown = document.getElementById(`notifDropdown-${role}`);
+            if (dropdown && dropdown.parentElement.contains(event.target.closest('.notification-container'))) {
+                dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+            } else if (dropdown) {
+                dropdown.style.display = "none";
+            }
+        });
+    }
+
+    function addNotification(message) {
+        const newNotif = {
+            message: message,
+            date: new Date().toLocaleString(),
+            read: false
+        };
+        notifications.unshift(newNotif);
+        if (notifications.length > 20) notifications.pop(); // Keep last 20
+        localStorage.setItem("sbj_notifications", JSON.stringify(notifications));
+        updateNotifUI();
+    }
+
+    function markAsRead(index) {
+        notifications[index].read = true;
+        localStorage.setItem("sbj_notifications", JSON.stringify(notifications));
+        updateNotifUI();
+    }
+
+    // Close notifications when clicking outside
+    window.addEventListener('click', function(e) {
+        if (!e.target.closest('.notification-container')) {
+            document.querySelectorAll('.notif-dropdown').forEach(d => d.style.display = 'none');
+        }
+    });
 
     // ================= DATA CONFIGURATION =================
     const DEFAULT_COMMITTEE = [
@@ -768,6 +878,7 @@
 
     // Initialization
     window.onload = () => {
+        updateNotifUI();
         if (currentUser) {
             routeUser(currentUser.role);
         } else {
@@ -799,6 +910,7 @@
     function switchScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
+        updateNotifUI();
     }
 
     function openModal(id) { document.getElementById(id).classList.add('active'); }
@@ -986,14 +1098,20 @@
             }
         }
 
-        if (authenticated) {
-            currentUser = userData;
-            if (document.getElementById('remember-me').checked) {
-                localStorage.setItem('sbj_user', JSON.stringify(userData));
-            }
-            showToast(`Welcome, ${userData.name}`);
-            routeUser(role);
-        } else {
+       if (authenticated) {
+    currentUser = userData;
+
+    if (document.getElementById('remember-me').checked) {
+        localStorage.setItem('sbj_user', JSON.stringify(userData));
+    }
+
+    showToast(`Welcome, ${userData.name}`);
+
+    // 🔔 ADD THIS LINE
+    addNotification(`Login successful: ${userData.name}`);
+
+    routeUser(role);
+} else {
             showToast("Invalid credentials!", 'error');
         }
     });
@@ -1337,6 +1455,7 @@
             // NEW MONTHLY LIMIT CHECK BEFORE APPLYING
             const usedThisMonth = getUsedGrantThisMonth(currentUser.id);
             if (usedThisMonth >= 1000) {
+                addNotification("Your monthly grant of ₹1000 has been fully utilized.");
                 alert("Your Monthly Grant Of ₹1000/- From Shree Batrisi Jain Co-Op Education Society Has Already Been Fully Utilized For This Month.\nYou Will Be Able To Use The Grant Again Next Month, When The System Automatically Renews Your ₹1000 Monthly Limit.");
                 return;
             }
@@ -1371,8 +1490,10 @@
             requests.push(newReq); // Optimistic UI update
             
             db.collection('requests').doc(newReq.id).set(newReq).then(() => {
-                showToast("Request Submitted Successfully!");
-            });
+    showToast("Request Submitted Successfully!");
+
+    addNotification(`Request submitted for ${newReq.patientName}. Sent for approval.`);
+});
             renderMemberStatus();
         });
     }
@@ -1579,6 +1700,7 @@
             db.collection('system').doc('tokens').set(tokenCounters);
             
             showToast(`Approved! Token generated: ${token}`);
+            addNotification(`Your request for ${req.patientName} has been approved by ${approver}.`);
             
             // Re-render appropriate screen
             if (currentUser && currentUser.role === 'Admin') {
@@ -1608,6 +1730,7 @@
             db.collection('requests').doc(id).set({ status: 'Declined', declineReason: reason }, { merge: true }).then(() => {
                 closeModal('modal-decline');
                 showToast("Request Declined");
+                addNotification("A medical request has been declined.");
                 
                 // Re-render appropriate screen
                 if (currentUser && currentUser.role === 'Admin') {
@@ -1743,6 +1866,7 @@
         // NEW GRANT LIMIT VALIDATION ON LAB SUBMISSION
         const usedThisMonth = getUsedGrantThisMonth(activeLabRequest.memberId);
         if (usedThisMonth + discountAmt > 1000) {
+            addNotification("Monthly assistance limit of ₹1000 per month exceeded.");
             return showToast("Member assistance limit is maximum ₹1000 per month.", "error");
         }
 
@@ -1766,6 +1890,7 @@
         
         db.collection('requests').doc(activeLabRequest.id).set(updatedReq, { merge: true }).then(() => {
             showToast("Report Closed Successfully!");
+            addNotification(`Report for ${activeLabRequest.patientName} completed by ${currentUser.name}. Final amount ₹${finalAmt}`);
             resetLabSearch();
         });
     }
@@ -1935,6 +2060,7 @@
         db.collection('requests').doc(id).delete().then(() => {
             closeModal('modal-delete-confirm');
             showToast("Report Deleted Permanently!");
+            addNotification("A medical report was deleted by Admin.");
             renderAdminRequests(); 
         });
     }
