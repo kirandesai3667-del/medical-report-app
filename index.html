@@ -499,6 +499,17 @@
                 <div class="header-title">Committee Panel</div>
                 <div class="header-subtitle" id="committee-header-name">Welcome</div>
             </div>
+            <!-- Notification Bell -->
+            <div class="notification-container">
+                <div class="bell" onclick="toggleNotifications()">
+                    <i class="ph ph-bell"></i>
+                    <span id="notifCount-committee" class="notif-count">0</span>
+                </div>
+                <div id="notifDropdown-committee" class="notif-dropdown">
+                    <h4>Notifications</h4>
+                    <ul id="notifList-committee"></ul>
+                </div>
+            </div>
         </div>
         <div class="content-area" id="committee-request-list">
             <!-- Dynamic Content -->
@@ -675,32 +686,38 @@
     let notifications = JSON.parse(localStorage.getItem("sbj_notifications")) || [];
 
     function updateNotifUI() {
-        const roles = ['admin', 'member', 'lab'];
-        let filteredNotifications = notifications.filter(n => !n.user || n.user === currentUser.name);
-        let unreadCount = filteredNotifications.filter(n => !n.read).length;
+    if (!currentUser) return;
+    const roles = ['admin', 'member', 'lab', 'committee'];
+    
+    // 🔥 FILTER NOTIFICATIONS BY USER ID
+    let myNotifs = notifications.filter(n => n.user === currentUser.id);
+    let unreadCount = myNotifs.filter(n => !n.read).length;
 
-        roles.forEach(role => {
-            const list = document.getElementById(`notifList-${role}`);
-            const count = document.getElementById(`notifCount-${role}`);
-            if (!list || !count) return;
+    roles.forEach(role => {
+        const list = document.getElementById(`notifList-${role}`);
+        const count = document.getElementById(`notifCount-${role}`);
+        if (!list || !count) return;
 
-            list.innerHTML = "";
-            notifications
-            .filter(n => !n.user || n.user === currentUser.name) 
-            .forEach((n, index) => {
+        list.innerHTML = "";
+        
+        // Use global index to mark as read correctly
+        notifications.forEach((n, globalIndex) => {
+            if (n.user === currentUser.id) {
                 const li = document.createElement("li");
                 li.className = n.read ? "" : "unread";
                 li.innerHTML = `${n.message}<small>${n.date}</small>`;
-                li.onclick = () => markAsRead(index);
+                li.onclick = () => markAsRead(globalIndex);
                 list.appendChild(li);
-            });
-            count.innerText = unreadCount;
-            count.style.display = unreadCount > 0 ? "block" : "none";
+            }
         });
-    }
+
+        count.innerText = unreadCount;
+        count.style.display = unreadCount > 0 ? "block" : "none";
+    });
+}
 
     function toggleNotifications() {
-        const roles = ['admin', 'member', 'lab'];
+        const roles = ['admin', 'member', 'lab', 'committee'];
         roles.forEach(role => {
             const dropdown = document.getElementById(`notifDropdown-${role}`);
             if (dropdown && dropdown.parentElement.contains(event.target.closest('.notification-container'))) {
@@ -711,16 +728,17 @@
         });
     }
 
-    function addNotification(message, targetUser) {
+    // 🔥 UPDATED FUNCTION TO REQUIRE TARGET USER ID
+function addNotification(message, targetUserId) {
     const newNotif = {
         message: message,
         date: new Date().toLocaleString(),
         read: false,
-        user: targetUser // 🔥 IMPORTANT
+        user: targetUserId
     };
 
     notifications.unshift(newNotif);
-    if (notifications.length > 20) notifications.pop();
+    if (notifications.length > 30) notifications.pop();
 
     localStorage.setItem("sbj_notifications", JSON.stringify(notifications));
     updateNotifUI();
@@ -884,6 +902,12 @@
 
     // Initialization
     window.onload = () => {
+        // 🔥 RESET OLD NOTIFICATIONS ONCE TO ENSURE NEW SCHEMA
+        if (!localStorage.getItem('sbj_notif_v2')) {
+            localStorage.removeItem('sbj_notifications');
+            localStorage.setItem('sbj_notif_v2', 'true');
+        }
+        
         updateNotifUI();
         if (currentUser) {
             routeUser(currentUser.role);
@@ -1106,6 +1130,7 @@
 
        if (authenticated) {
     currentUser = userData;
+    currentUser.id = id; // 🔥 ENSURE ID IS SET
 
     if (document.getElementById('remember-me').checked) {
         localStorage.setItem('sbj_user', JSON.stringify(userData));
@@ -1113,8 +1138,7 @@
 
     showToast(`Welcome, ${userData.name}`);
 
-    // 🔔 ADD THIS LINE
-    addNotification(`Login successful: ${userData.name}`);
+    addNotification(`Login successful: ${userData.name}`, id);
 
     routeUser(role);
 } else {
@@ -1461,7 +1485,7 @@
             // NEW MONTHLY LIMIT CHECK BEFORE APPLYING
             const usedThisMonth = getUsedGrantThisMonth(currentUser.id);
             if (usedThisMonth >= 1000) {
-                addNotification("Your monthly grant of ₹1000 has been fully utilized.");
+                addNotification("Your monthly grant of ₹1000 has been fully utilized.", currentUser.id);
                 alert("Your Monthly Grant Of ₹1000/- From Shree Batrisi Jain Co-Op Education Society Has Already Been Fully Utilized For This Month.\nYou Will Be Able To Use The Grant Again Next Month, When The System Automatically Renews Your ₹1000 Monthly Limit.");
                 return;
             }
@@ -1496,10 +1520,17 @@
             requests.push(newReq); // Optimistic UI update
             
             db.collection('requests').doc(newReq.id).set(newReq).then(() => {
-    showToast("Request Submitted Successfully!");
+                showToast("Request Submitted Successfully!");
 
-    addNotification(`Request submitted for ${newReq.patientName}. Sent for approval.`);
-});
+                // 🔥 NOTIFY MEMBER
+                addNotification(`Request submitted for ${newReq.patientName}.`, currentUser.id);
+
+                // 🔥 NOTIFY ASSIGNED COMMITTEE MEMBER (FIND ID FIRST)
+                const comMember = committeeList.find(c => c.name === newReq.assignedCommittee);
+                if (comMember) {
+                    addNotification(`New medical request from ${currentUser.name}.`, comMember.username);
+                }
+            });
             renderMemberStatus();
         });
     }
@@ -1706,7 +1737,9 @@
             db.collection('system').doc('tokens').set(tokenCounters);
             
             showToast(`Approved! Token generated: ${token}`);
-            addNotification(`Your request for ${req.patientName} has been approved by ${approver}.`);
+
+            // 🔥 NOTIFY MEMBER BY ID
+            addNotification(`Your request for ${req.patientName} has been approved.`, req.memberId);
             
             // Re-render appropriate screen
             if (currentUser && currentUser.role === 'Admin') {
@@ -1730,13 +1763,16 @@
 
         const reqIndex = requests.findIndex(r => r.id === id);
         if(reqIndex > -1) {
+            const req = requests[reqIndex];
             requests[reqIndex].status = 'Declined';
             requests[reqIndex].declineReason = reason;
             
             db.collection('requests').doc(id).set({ status: 'Declined', declineReason: reason }, { merge: true }).then(() => {
                 closeModal('modal-decline');
                 showToast("Request Declined");
-                addNotification("A medical request has been declined.");
+
+                // 🔥 NOTIFY MEMBER BY ID
+                addNotification(`Your medical request for ${req.patientName} has been declined.`, req.memberId);
                 
                 // Re-render appropriate screen
                 if (currentUser && currentUser.role === 'Admin') {
@@ -1872,7 +1908,7 @@
         // NEW GRANT LIMIT VALIDATION ON LAB SUBMISSION
         const usedThisMonth = getUsedGrantThisMonth(activeLabRequest.memberId);
         if (usedThisMonth + discountAmt > 1000) {
-            addNotification("Monthly assistance limit of ₹1000 per month exceeded.");
+            addNotification("Monthly assistance limit of ₹1000 per month exceeded.", activeLabRequest.memberId);
             return showToast("Member assistance limit is maximum ₹1000 per month.", "error");
         }
 
@@ -1896,7 +1932,10 @@
         
         db.collection('requests').doc(activeLabRequest.id).set(updatedReq, { merge: true }).then(() => {
             showToast("Report Closed Successfully!");
-            addNotification(`Report for ${activeLabRequest.patientName} completed by ${currentUser.name}. Final amount ₹${finalAmt}`);
+
+            // 🔥 NOTIFY MEMBER BY ID
+            addNotification(`Medical report for ${activeLabRequest.patientName} completed.`, activeLabRequest.memberId);
+
             resetLabSearch();
         });
     }
@@ -2066,7 +2105,9 @@
         db.collection('requests').doc(id).delete().then(() => {
             closeModal('modal-delete-confirm');
             showToast("Report Deleted Permanently!");
-            addNotification("A medical report was deleted by Admin.");
+            
+            // 🔥 NOTIFY ADMIN BY ID
+            addNotification("A medical report was deleted by Admin.", "kiran.desai3667@gmail.com");
             renderAdminRequests(); 
         });
     }
