@@ -97,8 +97,8 @@
         .toggle-password { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--text-secondary); cursor: pointer; }
         
         .checkbox-wrapper { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-        .checkbox-wrapper input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent-color); }
-        .checkbox-wrapper label { margin: 0; font-size: 14px; color: var(--text-secondary); }
+        .checkbox-wrapper input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent-color); appearance: auto; -webkit-appearance: auto; cursor: pointer; }
+        .checkbox-wrapper label { margin: 0; font-size: 14px; color: var(--text-secondary); cursor: pointer; }
 
         /* BUTTONS */
         button { width: 100%; border: none; padding: 16px; border-radius: 16px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s, opacity 0.2s; color: #fff; display: flex; justify-content: center; align-items: center; gap: 8px; }
@@ -165,45 +165,46 @@
     <div id="toast" class="toast"><i id="toast-icon" class="ph-fill ph-check-circle" style="color: var(--success); font-size: 20px;"></i> <span id="toast-msg">Success</span></div>
 
     <!-- ================= LOGIN SCREEN ================= -->
-    <div id="screen-login" class="screen active" style="justify-content: center; padding: 20px; overflow-y: auto;">
-        <div style="text-align: center; margin-bottom: 30px; margin-top: auto;">
-            <i class="ph-fill ph-shield-check" style="font-size: 50px; color: var(--accent-color); margin-bottom: 10px;"></i>
-            <h1 class="brand-gradient" style="font-size: 24px;">Batrisi Medical Sahay</h1>
-            <p style="color: var(--text-secondary); font-size: 12px; font-weight: 500;">Co-Op Education Society LTD</p>
-        </div>
+    <div id="screen-login" class="screen active" style="padding: 20px; overflow-y: auto; display: flex; flex-direction: column;">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <i class="ph-fill ph-shield-check" style="font-size: 50px; color: var(--accent-color); margin-bottom: 10px;"></i>
+                <h1 class="brand-gradient" style="font-size: 24px;">Batrisi Medical Sahay</h1>
+            </div>
 
-        <div class="card" style="padding: 20px;">
-            <form id="login-form">
-                <div class="form-group">
-                    <label>Select Role</label>
-                    <select id="login-role" required onchange="handleRoleChange()">
-                        <option value="Member">Member</option>
-                        <option value="Admin">Admin</option>
-                        <option value="Committee">Committee Member</option>
-                        <option value="Laboratory">Laboratory</option>
-                    </select>
-                </div>
-                <div class="form-group" id="login-id-group">
-                    <label id="login-id-label">Member Number</label>
-                    <input type="text" id="login-id" placeholder="Enter ID" required autocomplete="off">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <div class="password-wrapper">
-                        <input type="password" id="login-password" placeholder="Enter Password" required>
-                        <i class="ph ph-eye toggle-password" onclick="togglePassword()"></i>
+            <div class="card" style="padding: 20px;">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>Select Role</label>
+                        <select id="login-role" required onchange="handleRoleChange()">
+                            <option value="Member">Member</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Committee">Committee Member</option>
+                            <option value="Laboratory">Laboratory</option>
+                        </select>
                     </div>
-                </div>
-                <div class="checkbox-wrapper" style="margin-bottom: 20px;">
-                    <input type="checkbox" id="remember-me">
-                    <label for="remember-me">Remember Login</label>
-                </div>
-                <button type="submit" class="btn-gradient">Log In</button>
-            </form>
+                    <div class="form-group" id="login-id-group">
+                        <label id="login-id-label">Member Number</label>
+                        <input type="text" id="login-id" placeholder="Enter ID" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="login-password" placeholder="Enter Password" required>
+                            <i class="ph ph-eye toggle-password" onclick="togglePassword()"></i>
+                        </div>
+                    </div>
+                    <div class="checkbox-wrapper" style="margin-bottom: 20px;">
+                        <input type="checkbox" id="remember-me">
+                        <label for="remember-me">Remember Login</label>
+                    </div>
+                    <button type="submit" class="btn-gradient">Log In</button>
+                </form>
+            </div>
         </div>
 
         <!-- SOCIETY DETAILS FOOTER -->
-        <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin-top: auto;">
+        <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6;">
             <b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br>
             Sheth Shri Hiralal Hargovandas Batrishi Hall<br>
             Near R.T.O Circle, Subhashbridge, Collector Kacheri<br>
@@ -541,6 +542,11 @@
                         <label>Discount Amount (₹) - Auto 50%</label>
                         <input type="text" id="lab-discount-amount" value="0.00" readonly style="color: var(--warning); font-weight: bold;">
                     </div>
+                    <div class="form-group">
+                        <label>Upload Invoice (Photo/Image)</label>
+                        <input type="file" id="lab-invoice-file" accept="image/png, image/jpeg, image/jpg" capture="environment" onchange="handleInvoiceUpload(event)" style="background: transparent; padding: 0; border: none;">
+                        <img id="invoice-preview" class="img-preview" src="">
+                    </div>
                     <div class="detail-row" style="font-size: 18px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 15px;">
                         <span class="detail-label" style="color: var(--text-primary);">Final Payable Amount:</span>
                         <span id="lab-final-amount" style="font-weight: 800; color: var(--accent-color);">₹ 0.00</span>
@@ -704,6 +710,7 @@
     let activeLabRequest = null;
     let uploadedIdPhotoBase64 = null; 
     let uploadedPrescriptionBase64 = null;
+    let uploadedInvoiceBase64 = null;
     let html5QrcodeScanner = null;
 
     // Real-Time Listeners establishing Firestore connection
@@ -910,6 +917,20 @@
                 uploadedPrescriptionBase64 = e.target.result;
                 const preview = document.getElementById('prescription-preview');
                 preview.src = uploadedPrescriptionBase64;
+                preview.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function handleInvoiceUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedInvoiceBase64 = e.target.result;
+                const preview = document.getElementById('invoice-preview');
+                preview.src = uploadedInvoiceBase64;
                 preview.style.display = 'block';
             }
             reader.readAsDataURL(file);
@@ -1400,6 +1421,8 @@
                 // NEW: COMPLETED REPORT DETAILS
                 let completedHtml = '';
                 if(req.status === 'Completed') {
+                    let invHtml = req.invoiceImage ? `<button class="btn-outline btn-small" style="margin-top:10px; width:100%; border-color:var(--accent-color); color:var(--accent-color);" onclick="viewFullPhoto('${req.invoiceImage}')"><i class="ph ph-receipt"></i> View Invoice</button>` : '';
+
                     completedHtml = `
                         <div class="section-box" style="margin-top: 15px; border-color: var(--success); background: rgba(0, 186, 124, 0.05);">
                             <h4 style="color: var(--success); margin-bottom: 10px;">Report Completed Details</h4>
@@ -1409,6 +1432,7 @@
                             <div class="detail-row"><span class="detail-label">Report Name:</span><span>${req.reportName || req.testName}</span></div>
                             <div class="detail-row"><span class="detail-label">Report Amount:</span><span>₹${req.originalAmount}</span></div>
                             <div class="detail-row"><span class="detail-label">Society Discount:</span><span style="color: var(--success); font-weight: bold;">₹${req.discountAmount}</span></div>
+                            ${invHtml}
                         </div>
                     `;
                 }
@@ -1630,6 +1654,13 @@
         document.getElementById('lab-search-token').value = '';
         document.getElementById('lab-result-area').style.display = 'none';
         activeLabRequest = null;
+        
+        uploadedInvoiceBase64 = null;
+        const invInput = document.getElementById('lab-invoice-file');
+        if(invInput) invInput.value = '';
+        const invPreview = document.getElementById('invoice-preview');
+        if(invPreview) { invPreview.src = ''; invPreview.style.display = 'none'; }
+        
         renderLabRequests();
     }
 
@@ -1650,6 +1681,11 @@
             document.getElementById('lab-original-amount').value = '';
             document.getElementById('lab-discount-amount').value = '0.00';
             document.getElementById('lab-final-amount').innerText = '₹ 0.00';
+            
+            uploadedInvoiceBase64 = null;
+            document.getElementById('lab-invoice-file').value = '';
+            document.getElementById('invoice-preview').src = '';
+            document.getElementById('invoice-preview').style.display = 'none';
 
             const detailsHtml = `
                 <div class="card-header"><b style="font-size:18px; color:var(--accent-color);">${req.token}</b><i class="ph-fill ph-check-circle" style="color:var(--success); font-size:24px;"></i></div>
@@ -1723,7 +1759,8 @@
             finalAmount: finalAmt,
             labClosedBy: currentUser.name,
             labClosedDate: closeDate,
-            labClosedDay: getDayName(closeDate)
+            labClosedDay: getDayName(closeDate),
+            invoiceImage: uploadedInvoiceBase64
         };
         requests[reqIndex] = updatedReq;
         
@@ -1868,6 +1905,7 @@
                         <span style="color:var(--accent-color)">${req.lab}</span><br>
                         <b style="font-size:12px;">Dr: ${req.doctorName || '-'}</b>
                         ${req.prescriptionImage ? `<br><button class="btn-small btn-outline" style="margin-top:5px; padding:4px 8px; font-size:10px;" onclick="viewFullPhoto('${req.prescriptionImage}')">View Rx</button>` : ''}
+                        ${req.invoiceImage ? `<br><button class="btn-small btn-outline" style="margin-top:5px; padding:4px 8px; font-size:10px; border-color:var(--accent-color); color:var(--accent-color);" onclick="viewFullPhoto('${req.invoiceImage}')">View Invoice</button>` : ''}
                         ${req.reportName ? `<br><span style="font-size:11px;">Rep: ${req.reportName}</span>` : ''}
                     </td>
                     <td>${amountDisplay}</td>
@@ -1966,6 +2004,7 @@
             "Laboratory Name": r.lab || '',
             "Doctor Name": r.doctorName || '',
             "Has Prescription Image": r.prescriptionImage ? "Yes" : "No",
+            "Has Invoice Image": r.invoiceImage ? "Yes" : "No",
             "Login Date": displayDateTime(r.dateApplied, r.timeApplied),
             "Login Day": r.appliedDay || '',
             "Approved By": r.approverName || '',
@@ -2105,6 +2144,7 @@
             "Doctor Name": r.doctorName || '-',
             "Report Name": r.reportName || '-',
             "Has Prescription": r.prescriptionImage ? "Yes" : "No",
+            "Has Invoice": r.invoiceImage ? "Yes" : "No",
             "Original Amount": r.originalAmount || 0,
             "Discount Amount": r.discountAmount || 0,
             "Final Amount": r.finalAmount || 0,
