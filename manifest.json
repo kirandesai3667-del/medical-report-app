@@ -1,13 +1,14 @@
 {
   "name": "Batrisi Medical Sahay App",
   "short_name": "Batrisi Medical",
-  "start_url": "/",
+
+  "start_url": "/medical-report-app/",
+  "scope": "/medical-report-app/",
+
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
-  "orientation": "any",
-  "scope": "/",
-  "description": "Medical report management system for Shri Batrisi Jain Co-Op Education Society members.",
+
   "icons": [
     {
       "src": "icon-192.png",
