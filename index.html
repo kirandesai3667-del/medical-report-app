@@ -855,7 +855,6 @@
         "APPOLO": { name: "Apollo Lab", prefix: "APP", loginId: "APPOLO", password: "APP@123" }
     };
 
-    // ================= ADDED GLOBAL CONSTANTS FOR NEW FEATURES =================
     const societyFooterHTML = `
         <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin-top: 30px; border-top: 1px solid var(--border-color);">
             <b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br>
@@ -942,7 +941,6 @@
     db.collection('system').doc('committee').onSnapshot(doc => {
         if(doc.exists) {
             let fetchedList = doc.data().list || [];
-            // Safe auto-migration from names to mobile numbers
             if(fetchedList.length > 0 && isNaN(fetchedList[0].username)) {
                 committeeList = DEFAULT_COMMITTEE.map(c => {
                     let existing = fetchedList.find(old => old.name === c.name);
@@ -960,7 +958,6 @@
         else db.collection('system').doc('committee').set({ list: committeeList });
     });
 
-    // Real-time listener optimized for Members Collection 
     db.collection('members').onSnapshot(snapshot => {
         memberDatabase = {};
         snapshot.forEach(doc => {
@@ -999,7 +996,6 @@
 
     // Initialization
     window.onload = () => {
-        // Clean up legacy localstorage notification logic gracefully
         if (!localStorage.getItem('sbj_notif_v2')) {
             localStorage.removeItem('sbj_notifications');
             localStorage.setItem('sbj_notif_v2', 'true');
@@ -1012,8 +1008,6 @@
             switchScreen('screen-login');
         }
     };
-
-    function saveState() { }
 
     // ================= UTILITIES =================
     function showToast(msg, type = 'success') {
@@ -1074,7 +1068,6 @@
         return `${dateStr} ${timeStr}`;
     }
 
-    // Helper formatter to display dates safely
     function displayDateTime(dStr, tStr) {
         if (!dStr) return '-';
         if (dStr.includes(' ')) return dStr; 
@@ -1096,7 +1089,6 @@
         return `${day}/${month}/${year}`;
     }
 
-    // Utility: Calculate Used Grant For Current Month
     function getUsedGrantThisMonth(memberId) {
         const now = new Date();
         const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
@@ -1133,45 +1125,74 @@
         else group.style.display = 'none';
     }
 
+    // ================= IMAGE COMPRESSION LOGIC TO FIX FIREBASE LIMITS =================
+    function compressImage(file, maxWidth, maxHeight, quality, callback) {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function(event) {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = function() {
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round((height *= maxWidth / width));
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round((width *= maxHeight / height));
+                        height = maxHeight;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                callback(dataUrl);
+            }
+        }
+    }
+
     function handlePhotoUpload(event) {
         const file = event.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                uploadedIdPhotoBase64 = e.target.result;
+            compressImage(file, 800, 800, 0.7, function(base64) {
+                uploadedIdPhotoBase64 = base64;
                 const preview = document.getElementById('id-photo-preview');
                 preview.src = uploadedIdPhotoBase64;
                 preview.style.display = 'block';
-            }
-            reader.readAsDataURL(file);
+            });
         }
     }
 
     function handlePrescriptionUpload(event) {
         const file = event.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                uploadedPrescriptionBase64 = e.target.result;
+            compressImage(file, 800, 800, 0.7, function(base64) {
+                uploadedPrescriptionBase64 = base64;
                 const preview = document.getElementById('prescription-preview');
                 preview.src = uploadedPrescriptionBase64;
                 preview.style.display = 'block';
-            }
-            reader.readAsDataURL(file);
+            });
         }
     }
 
     function handleInvoiceUpload(event) {
         const file = event.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                uploadedInvoiceBase64 = e.target.result;
+            compressImage(file, 800, 800, 0.7, function(base64) {
+                uploadedInvoiceBase64 = base64;
                 const preview = document.getElementById('invoice-preview');
                 preview.src = uploadedInvoiceBase64;
                 preview.style.display = 'block';
-            }
-            reader.readAsDataURL(file);
+            });
         }
     }
 
@@ -1638,7 +1659,7 @@
             Object.keys(newReq).forEach(key => newReq[key] === undefined && delete newReq[key]);
 
             try {
-                db.collection('requests').doc(newReq.id).set(newReq);
+                await db.collection('requests').doc(newReq.id).set(newReq);
                 
                 if (!requests.some(r => r.id === newReq.id)) {
                     requests.push(newReq); 
@@ -1874,11 +1895,9 @@
             tokenCounters[prefix] = count + 1;
 
             const appDate = getCurrentDateTime();
-            
             const approver = (currentUser && currentUser.role === 'Admin') ? 'Office Admin' : currentUser.name;
 
-            const updatedReq = {
-                ...req,
+            const updatedFields = {
                 status: 'Approved',
                 token: token,
                 approverName: approver,
@@ -1886,12 +1905,14 @@
                 approvalDay: getDayName(appDate)
             };
             
-            requests[reqIndex] = updatedReq; 
-            
             try {
-                await db.collection('requests').doc(id).set(updatedReq, { merge: true });
+                // Ensure Firebase is updated FIRST
+                await db.collection('requests').doc(id).update(updatedFields);
                 await db.collection('system').doc('tokens').set(tokenCounters);
                 
+                // Then visually update local listener
+                requests[reqIndex] = { ...requests[reqIndex], ...updatedFields };
+
                 showToast(`Approved! Token generated: ${token}`);
 
                 // INSTANT NOTIFICATION TO MEMBER
@@ -1925,11 +1946,12 @@
             const req = requests[reqIndex];
             const approver = (currentUser && currentUser.role === 'Admin') ? 'Office Admin' : currentUser.name;
 
-            requests[reqIndex].status = 'Declined';
-            requests[reqIndex].declineReason = reason;
-            
             try {
-                await db.collection('requests').doc(id).set({ status: 'Declined', declineReason: reason }, { merge: true });
+                await db.collection('requests').doc(id).update({ status: 'Declined', declineReason: reason });
+                
+                requests[reqIndex].status = 'Declined';
+                requests[reqIndex].declineReason = reason;
+
                 closeModal('modal-decline');
                 showToast("Request Declined");
 
@@ -2056,7 +2078,7 @@
         document.getElementById('lab-final-amount').innerText = `₹ ${final.toFixed(2)}`;
     }
 
-    function closeLabReport() {
+    async function closeLabReport() {
         if(!activeLabRequest) return;
         
         if (!uploadedInvoiceBase64) {
@@ -2082,10 +2104,14 @@
         }
 
         const reqIndex = requests.findIndex(r => r.id === activeLabRequest.id);
+        if (reqIndex === -1) {
+            return showToast("Request not found locally.", "error");
+        }
         
         const closeDate = getCurrentDateTime();
-        const updatedReq = {
-            ...activeLabRequest,
+        
+        // Use strictly only the fields needing update
+        const updatedFields = {
             status: 'Completed',
             reportName: reportName,
             billingDate: formattedBillingDate, 
@@ -2097,13 +2123,42 @@
             labClosedDay: getDayName(closeDate),
             invoiceImage: uploadedInvoiceBase64
         };
-        requests[reqIndex] = updatedReq;
-        
-        db.collection('requests').doc(activeLabRequest.id).set(updatedReq, { merge: true }).then(() => {
-            showToast("Report Closed Successfully!");
+
+        // UI Feedback - Lock the button so they don't spam click while it saves
+        const completeBtn = document.querySelector("#lab-result-area .btn-success");
+        let origBtnText = "Complete & Close Report";
+        if (completeBtn) {
+            origBtnText = completeBtn.innerText;
+            completeBtn.innerText = "Saving to Firebase...";
+            completeBtn.disabled = true;
+        }
+
+        console.log("--- Lab Report Complete Process ---");
+        console.log("Before update:", requests[reqIndex]);
+
+        try {
+            // Wait for Firebase to save completely using updateDoc mechanism
+            await db.collection('requests').doc(activeLabRequest.id).update(updatedFields);
+            
+            console.log("After update: Firebase Save Confirmed!");
+
+            // Update local state ONLY after Firebase success is confirmed
+            requests[reqIndex] = { ...requests[reqIndex], ...updatedFields };
+            console.log("Local Snapshot Updated:", requests[reqIndex]);
+
+            showToast("Report completed and saved successfully!");
             addNotification(`Medical report for ${activeLabRequest.patientName} completed.`, activeLabRequest.memberId);
+            
             resetLabSearch();
-        });
+        } catch (error) {
+            console.error("Firebase update failed:", error);
+            showToast("Failed to save report. Please try again.", "error");
+        } finally {
+            if (completeBtn) {
+                completeBtn.innerText = origBtnText;
+                completeBtn.disabled = false;
+            }
+        }
     }
 
     function renderLabRequests() {
@@ -2538,23 +2593,23 @@
             const columns = Object.keys(exportData[0]).map(k => ({ header: k, dataKey: k }));
             
             doc.autoTable({
-    columns: columns,
-    body: exportData,
-    startY: 20,
-    styles: { fontSize: 6, cellPadding: 1, overflow: 'linebreak' },
-    headStyles: { fillColor: [0, 149, 246] },
-    margin: { top: 20, left: 5, right: 5 },
-    theme: 'grid'
-});
+                columns: columns,
+                body: exportData,
+                startY: 20,
+                styles: { fontSize: 6, cellPadding: 1, overflow: 'linebreak' },
+                headStyles: { fillColor: [0, 149, 246] },
+                margin: { top: 20, left: 5, right: 5 },
+                theme: 'grid'
+            });
 
-doc.save(fileName + ".pdf");
-showToast("PDF Exported!");
-}
-}
+            doc.save(fileName + ".pdf");
+            showToast("PDF Exported!");
+        }
+    }
 
 </script>
 
-<!-- ✅ PWA SERVICE WORKER REGISTER (ADD THIS) -->
+<!-- ✅ PWA SERVICE WORKER REGISTER -->
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
