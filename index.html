@@ -1452,19 +1452,20 @@
         }
 
        if (authenticated) {
-            currentUser = userData;
-            currentUser.id = id; 
+    currentUser = userData;
+    currentUser.id = id; 
 
-            if (document.getElementById('remember-me').checked) {
-                localStorage.setItem('sbj_user', JSON.stringify(userData));
-            }
+    // 🔥 ADD THIS
+    requestPushNotificationPermission();
 
-            showToast(`Welcome, ${userData.name}`);
-            addNotification(`Login successful: ${userData.name}`, id);
-            routeUser(role);
-        } else {
-            showToast("Invalid credentials!", 'error');
-        }
+    if (document.getElementById('remember-me').checked) {
+        localStorage.setItem('sbj_user', JSON.stringify(userData));
+    }
+
+    showToast(`Welcome, ${userData.name}`);
+    addNotification(`Login successful: ${userData.name}`, id);
+    routeUser(role);
+}
     });
 
     function logout() {
