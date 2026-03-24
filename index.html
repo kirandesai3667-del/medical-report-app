@@ -881,6 +881,29 @@
             console.error('Notification Error:', error);
         }
     }    
+    async function sendNotificationToAll(title, body) {
+    try {
+        const usersSnap = await db.collection('users').get();
+        let tokenCount = 0;
+
+        usersSnap.forEach(async (doc) => {
+            const userData = doc.data();
+            if (userData.fcmToken) {
+                await db.collection('notifications').add({
+                    title: title,
+                    message: body,
+                    userId: userData.userId || doc.id,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    read: false
+                });
+                tokenCount++;
+            }
+        });
+        console.log(`Notification sent to ${tokenCount} users.`);
+    } catch (error) {
+        console.error("Error sending notification:", error);
+    }
+}
     // ================= NOTIFICATION LOGIC (REAL-TIME FIREBASE SETUP) =================
     let notifications = [];
 
@@ -1835,7 +1858,7 @@
                 createdAt: timestamp,
                 target: ["Member", "Committee", "Admin"] 
             });
-
+            
             await db.collection('notifications').add({
                 updateId: newDocRef.id,
                 title: "New Program: " + title,
@@ -1846,7 +1869,8 @@
                 read: false,
                 user: 'program_update'
             });
-
+          // ✅ Sabko automatic notification bhejne ke liye
+          sendNotificationToAll(title, msg);
             showToast("Program Posted Successfully!");
             formTarget.reset();
             closeModal('modal-batrisi-programs');
