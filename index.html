@@ -1484,7 +1484,7 @@
             }
 
             showToast(`Welcome, ${userData.name}`);
-            addNotification(`Login successful: ${userData.name}`, id);
+            // Quota bachane ke liye login notification database me save karna band kar diya hai.
             routeUser(role);
         } else {
             showToast("Invalid credentials!", 'error');
