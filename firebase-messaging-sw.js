@@ -1,5 +1,5 @@
-importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
 
 firebase.initializeApp({
   apiKey: "AIzaSyC97HQL03FiX8meE2iMaVAF7EJZh7r-XAM",
@@ -12,13 +12,27 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background notification handler
+// 🔔 YE LINE MOBILE POP-UP KE LIYE SABSE ZAROORI HAI
 messaging.onBackgroundMessage((payload) => {
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: 'icon-192.png'
-  };
+    console.log('[firebase-messaging-sw.js] Background message received ', payload);
+    
+    const notificationTitle = payload.notification.title || "Naya Medical Update";
+    const notificationOptions = {
+        body: payload.notification.body || "Ek naya program add kiya gaya hai.",
+        icon: './icon-192.png',
+        badge: './icon-192.png',
+        data: {
+            url: "https://kirandesai3667-del.github.io/medical-report-app/"
+        }
+    };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Notification click par app kholne ke liye
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        clients.openWindow(event.notification.data.url)
+    );
 });
