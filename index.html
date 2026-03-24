@@ -857,31 +857,36 @@
         if (!messaging || !currentUser || !currentUser.id) return;
         
         try {
-            // Force register service worker with correct path for GitHub Pages
+            // 1. Pehle Service Worker register karein
             const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
-            messaging.useServiceWorker(registration); 
-
+            
+            // 2. Permission maangein
             const permission = await Notification.requestPermission();
+            
             if (permission === 'granted') {
+                // 3. Token lein (VAPID key ke saath serviceWorkerRegistration pass karein)
                 const token = await messaging.getToken({ 
-                    vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I' 
+                    vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
+                    serviceWorkerRegistration: registration 
                 });
 
                 if (token) {
                     console.log("Token generated:", token);
+                    // 4. Firestore mein save karein
                     await db.collection('users').doc(currentUser.id).set({
                         userId: currentUser.id,
                         name: currentUser.name,
                         role: currentUser.role,
                         fcmToken: token,
                         lastActive: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
+                    }, { merge: true }); [cite: 284, 285]
                 }
             }
         } catch (error) {
             console.error('Notification Error:', error);
         }
     }
+    
     // ================= NOTIFICATION LOGIC (REAL-TIME FIREBASE SETUP) =================
     let notifications = [];
 
