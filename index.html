@@ -853,18 +853,18 @@
         });
     }
 
-    async function requestPushNotificationPermission() {
+   async function requestPushNotificationPermission() {
         if (!messaging || !currentUser || !currentUser.id) return;
         
         try {
-            // 1. Pehle Service Worker register karein
+            // 1. Service Worker ko register karein
             const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
             
-            // 2. Permission maangein
+            // 2. Browser se permission maangein
             const permission = await Notification.requestPermission();
             
             if (permission === 'granted') {
-                // 3. Token lein (VAPID key ke saath serviceWorkerRegistration pass karein)
+                // 3. Token lein (serviceWorkerRegistration yahan pass karna hota hai)
                 const token = await messaging.getToken({ 
                     vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
                     serviceWorkerRegistration: registration 
@@ -872,7 +872,7 @@
 
                 if (token) {
                     console.log("Token generated:", token);
-                    // 4. Firestore mein save karein
+                    // 4. Firestore mein 'users' collection mein save karein
                     await db.collection('users').doc(currentUser.id).set({
                         userId: currentUser.id,
                         name: currentUser.name,
@@ -883,7 +883,7 @@
                 }
             }
         } catch (error) {
-            console.error('Notification Error:', error);
+            console.error('Notification Error:', error); [cite: 287]
         }
     }
     
