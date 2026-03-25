@@ -891,17 +891,20 @@
     // ================= AUTOMATED PUSH NOTIFICATION API (FIXED) =================
     async function triggerPush(target, title, body, isTopic = false) {
         if (!target) return;
-        // URL parameters format for CORS bypass
+        
+        // Naya format: Data ko URL parameters mein convert karke bhej rahe hain
         const url = `${SCRIPT_URL}?token=${encodeURIComponent(target)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&isTopic=${isTopic}`;
+
         try {
+            // mode: 'no-cors' redirection handle karne ke liye zaroori hai
             await fetch(url, {
-                method: 'POST',
-                mode: 'no-cors',
+                method: 'POST', 
+                mode: 'no-cors', 
                 cache: 'no-cache'
             });
             console.log("Push trigger sent successfully (No-CORS Mode)");
-        } catch (e) {
-            console.error("Push trigger API issue:", e);
+        } catch (e) { 
+            console.error("Push trigger API issue:", e); 
         }
     }
 
