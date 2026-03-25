@@ -840,7 +840,7 @@
     const db = firebase.firestore();
     
     // ================= NEW FCM & PUSH LOGIC =================
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZFXQksLrQak2gTPpZkSgNP_cj0BZB0YoSfAgX66vETCPbDM_q8oiQUKZ-eAzvTf228A/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbygJFzWZL8A6_q-HiGfg1TvmFLBMG0Uy-ScAKdQsvC9g4yAe9d_eNZCjZ8Gif2R6HP_lw/exec';
     let messaging = null;
 
     if (firebase.messaging && firebase.messaging.isSupported()) {
@@ -888,25 +888,25 @@
         }
     }    
 
-    // ================= AUTOMATED PUSH NOTIFICATION API =================
-    async function triggerPush(target, title, body, isTopic = false) {
-        if (!target) return;
-        try {
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({
-                    target: target,
-                    isTopic: isTopic,
-                    title: title,
-                    body: body,
-                    message: body // For compatibility
-                })
-            }).catch(err => console.log("Push trigger API issue:", err));
-        } catch(e) {
-            console.error("Push Error: ", e);
-        }
+    // ================= AUTOMATED PUSH NOTIFICATION API (FIXED) =================
+async function triggerPush(target, title, body, isTopic = false) {
+    if (!target) return;
+    
+    // CORS Bypass ke liye URL Parameters ka use karein
+    const url = `${SCRIPT_URL}?token=${encodeURIComponent(target)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&isTopic=${isTopic}`;
+
+    try {
+        // mode: 'no-cors' sabse zaroori hai Google Script redirect handle karne ke liye
+        await fetch(url, {
+            method: 'POST', 
+            mode: 'no-cors', 
+            cache: 'no-cache'
+        });
+        console.log("Push trigger sent successfully (No-CORS Mode)");
+    } catch (e) { 
+        console.error("Push trigger API issue:", e); 
     }
+}
 
     async function sendNotificationToAll(title, body) {
         try {
