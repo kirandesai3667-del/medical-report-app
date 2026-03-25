@@ -866,6 +866,7 @@
                     serviceWorkerRegistration: registration 
                 });
 
+                // ✅ FCM TOKEN SAVING TO FIRESTORE AS REQUESTED
                 if (token) {
                     console.log("Token generated:", token);
                     await db.collection('users').doc(currentUser.id).set({
@@ -881,29 +882,54 @@
             console.error('Notification Error:', error);
         }
     }    
-    async function sendNotificationToAll(title, body) {
-    try {
-        const usersSnap = await db.collection('users').get();
-        let tokenCount = 0;
 
-        usersSnap.forEach(async (doc) => {
-            const userData = doc.data();
-            if (userData.fcmToken) {
-                await db.collection('notifications').add({
+    // ================= AUTOMATED PUSH NOTIFICATION API =================
+    async function triggerPush(targetId, title, body, fcmToken = null) {
+        const gasUrl = "https://script.google.com/macros/s/AKfycbwZFXQksLrQak2gTPpZkSgNP_cj0BZB0YoSfAgX66vETCPbDM_q8oiQUKZ-eAzvTf228A/exec";
+        try {
+            fetch(gasUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    target: targetId,
+                    token: fcmToken,
                     title: title,
-                    message: body,
-                    userId: userData.userId || doc.id,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    read: false
-                });
-                tokenCount++;
-            }
-        });
-        console.log(`Notification sent to ${tokenCount} users.`);
-    } catch (error) {
-        console.error("Error sending notification:", error);
+                    body: body,
+                    message: body
+                })
+            }).catch(err => console.log("Push trigger API issue:", err));
+        } catch(e) {
+            console.error("Push Error: ", e);
+        }
     }
-}
+
+    async function sendNotificationToAll(title, body) {
+        try {
+            const usersSnap = await db.collection('users').get();
+            let tokenCount = 0;
+
+            usersSnap.forEach(async (doc) => {
+                const userData = doc.data();
+                if (userData.fcmToken) {
+                    await db.collection('notifications').add({
+                        title: title,
+                        message: body,
+                        userId: userData.userId || doc.id,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        read: false
+                    });
+                    
+                    // ✅ PUSH NOTIFICATION TO ALL MEMBERS TRIGGER
+                    triggerPush(userData.userId || doc.id, title, body, userData.fcmToken);
+                    tokenCount++;
+                }
+            });
+            console.log(`Notification sent to ${tokenCount} users.`);
+        } catch (error) {
+            console.error("Error sending notification:", error);
+        }
+    }
+
     // ================= NOTIFICATION LOGIC (REAL-TIME FIREBASE SETUP) =================
     let notifications = [];
 
@@ -1484,7 +1510,6 @@
             }
 
             showToast(`Welcome, ${userData.name}`);
-            // Quota bachane ke liye login notification database me save karna band kar diya hai.
             routeUser(role);
         } else {
             showToast("Invalid credentials!", 'error');
@@ -1769,7 +1794,7 @@
         }
     }
 
-    // // Batrisi Pro System Start
+    // Batrisi Pro System Start
     document.getElementById('form-add-program').addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -1869,8 +1894,10 @@
                 read: false,
                 user: 'program_update'
             });
-          // ✅ Sabko automatic notification bhejne ke liye
-          sendNotificationToAll(title, msg);
+
+            // ✅ TRIGGER PUSH TO ALL MEMBERS
+            sendNotificationToAll(title, msg);
+            
             showToast("Program Posted Successfully!");
             formTarget.reset();
             closeModal('modal-batrisi-programs');
@@ -1891,7 +1918,7 @@
             currentVideoUploadTask = null; // Clean up memory
         }
     });
-    // // Batrisi Pro System End
+    // Batrisi Pro System End
 
 
     // ================= MEMBER LOGIC =================
@@ -2099,6 +2126,8 @@
                 const comMember = committeeList.find(c => c.name === newReq.assignedCommittee);
                 if (comMember) {
                     addNotification(`New medical request from ${currentUser.name}.`, comMember.username);
+                    // ✅ TRIGGER PUSH TO ASSIGNED COMMITTEE MEMBER
+                    triggerPush(comMember.username, "New Medical Request", `${currentUser.name} has submitted a new request.`);
                 }
                 
                 renderMemberStatus();
@@ -2408,6 +2437,9 @@
 
                 addNotification(`Your request (ID: ${req.memberId}) has been APPROVED by ${approver}`, req.memberId);
                 
+                // ✅ TRIGGER PUSH TO MEMBER FOR APPROVAL
+                triggerPush(req.memberId, "Request Approved", `Your medical request has been approved by ${approver}. Token: ${token}`);
+
                 if (currentUser && currentUser.role === 'Admin') {
                     renderAdminRequests();
                 } else {
@@ -2447,6 +2479,9 @@
 
                 addNotification(`Your request (ID: ${req.memberId}) has been DECLINED by ${approver}`, req.memberId);
                 
+                // ✅ TRIGGER PUSH TO MEMBER FOR DECLINE
+                triggerPush(req.memberId, "Request Declined", `Your medical request was declined. Reason: ${reason}`);
+
                 if (currentUser && currentUser.role === 'Admin') {
                     renderAdminRequests();
                 } else {
