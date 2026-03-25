@@ -889,24 +889,21 @@
     }    
 
     // ================= AUTOMATED PUSH NOTIFICATION API (FIXED) =================
-async function triggerPush(target, title, body, isTopic = false) {
-    if (!target) return;
-    
-    // CORS Bypass ke liye URL Parameters ka use karein
-    const url = `${SCRIPT_URL}?token=${encodeURIComponent(target)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&isTopic=${isTopic}`;
-
-    try {
-        // mode: 'no-cors' sabse zaroori hai Google Script redirect handle karne ke liye
-        await fetch(url, {
-            method: 'POST', 
-            mode: 'no-cors', 
-            cache: 'no-cache'
-        });
-        console.log("Push trigger sent successfully (No-CORS Mode)");
-    } catch (e) { 
-        console.error("Push trigger API issue:", e); 
+    async function triggerPush(target, title, body, isTopic = false) {
+        if (!target) return;
+        // URL parameters format for CORS bypass
+        const url = `${SCRIPT_URL}?token=${encodeURIComponent(target)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&isTopic=${isTopic}`;
+        try {
+            await fetch(url, {
+                method: 'POST',
+                mode: 'no-cors',
+                cache: 'no-cache'
+            });
+            console.log("Push trigger sent successfully (No-CORS Mode)");
+        } catch (e) {
+            console.error("Push trigger API issue:", e);
+        }
     }
-}
 
     async function sendNotificationToAll(title, body) {
         try {
