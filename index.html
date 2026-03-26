@@ -878,9 +878,6 @@
                         fcmToken: token,
                         lastActive: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
-
-                    // Subscribe to 'all_members' topic via GAS
-                    triggerPush(token, "SUBSCRIBE_TOPIC", "all_members", false);
                 }
             }
         } catch (error) {
@@ -2173,7 +2170,7 @@
                     try {
                         const comDoc = await db.collection('users').doc(comMember.username).get();
                         if (comDoc.exists && comDoc.data().fcmToken) {
-                            triggerPush(comDoc.data().fcmToken, "New Medical Request", `${currentUser.name} has submitted a new request.`);
+                            triggerPush(comDoc.data().fcmToken, "New Medical Request", `New medical request from ${currentUser.name} requires your approval.`);
                         }
                     } catch(e) { console.log("Error fetching committee token", e); }
                 }
@@ -2489,7 +2486,7 @@
                 try {
                     const memDoc = await db.collection('users').doc(req.memberId).get();
                     if (memDoc.exists && memDoc.data().fcmToken) {
-                        triggerPush(memDoc.data().fcmToken, "Request Approved", `Your medical request has been approved by ${approver}. Token: ${token}`);
+                        triggerPush(memDoc.data().fcmToken, "Request Approved", `Your request has been Approved! Token: ${token}`);
                     }
                 } catch(e) { console.log("Error fetching member token", e); }
 
@@ -2536,7 +2533,7 @@
                 try {
                     const memDoc = await db.collection('users').doc(req.memberId).get();
                     if (memDoc.exists && memDoc.data().fcmToken) {
-                        triggerPush(memDoc.data().fcmToken, "Request Declined", `Your medical request was declined. Reason: ${reason}`);
+                        triggerPush(memDoc.data().fcmToken, "Request Declined", `Your request was Declined. Reason: ${reason}`);
                     }
                 } catch(e) { console.log("Error fetching member token", e); }
 
@@ -2728,6 +2725,14 @@
             showToast("Report completed and saved successfully!");
             addNotification(`Medical report for ${activeLabRequest.patientName} completed.`, activeLabRequest.memberId);
             
+            // ✅ TARGETED PUSH TO MEMBER FOR REPORT CLOSED
+            try {
+                const memDoc = await db.collection('users').doc(activeLabRequest.memberId).get();
+                if (memDoc.exists && memDoc.data().fcmToken) {
+                    triggerPush(memDoc.data().fcmToken, "Report Closed", `Medical report for ${activeLabRequest.patientName} is now complete. Society Discount: ₹${discountAmt} applied.`);
+                }
+            } catch(e) { console.log("Error fetching member token", e); }
+
             resetLabSearch();
         } catch (error) {
             console.error("Firebase update failed:", error);
