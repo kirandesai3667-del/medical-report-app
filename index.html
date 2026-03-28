@@ -322,6 +322,10 @@
                 <div class="action-card" onclick="refreshSystemData()">
                     <i class="ph ph-arrows-clockwise"></i><span>Refresh System Data</span>
                 </div>
+                <!-- NEW: Send Notification to All -->
+                <div class="action-card" onclick="openModal('modal-send-notification')">
+                    <i class="ph ph-broadcast"></i><span>Send Notification to All</span>
+                </div>
             </div>
 
             <!-- Filters -->
@@ -390,7 +394,7 @@
             <div class="table-container" id="admin-table-container">
                 <table id="admin-request-table">
                     <thead>
-                         <tr>
+                          <tr>
                             <th>Token</th>
                             <th>Status</th>
                             <th>Patient Details</th>
@@ -399,7 +403,7 @@
                             <th>Amount (Paid)</th>
                             <th>Committee Info</th>
                             <th>Action</th>
-                         </tr>
+                          </tr>
                     </thead>
                     <tbody id="admin-request-list-body">
                         <!-- Dynamic Content -->
@@ -431,7 +435,7 @@
         </div>
     </div>
 
-    <!-- Modals for Admin Management (unchanged, just keep all existing modals) -->
+    <!-- Modals for Admin Management (all previous modals) -->
     <div id="modal-upload-excel" class="modal"><div class="modal-content"><h2 style="text-align: center;">Upload Member Database</h2><p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">Upload Excel (.xlsx/.csv) containing Member Details</p><div style="background: rgba(240, 148, 51, 0.1); border: 1px solid rgba(240, 148, 51, 0.3); padding: 12px; border-radius: 12px; margin-bottom: 15px; font-size: 12px; color: var(--warning);"><b>Required Columns:</b> MemberNumber, MemberName, Address, NativeName, MobileNumber</div><div class="dropzone" id="excel-dropzone" onclick="document.getElementById('excel-file').click()"><i class="ph ph-file-arrow-up"></i><div id="excel-file-name">Tap to browse or drop .csv / .xlsx file here</div><input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleExcelUpload(event)"></div><button class="btn-outline" style="margin-top: 20px;" onclick="closeModal('modal-upload-excel')">Cancel</button></div></div>
     <div id="modal-manage-labs" class="modal"><div class="modal-content"><h2 style="text-align: center;">Manage Laboratories</h2><div id="admin-lab-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div><h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add New Lab</h3><form id="form-add-lab"><input type="text" id="new-lab-name" placeholder="Lab Name (e.g. K.D Lab)" required><input type="text" id="new-lab-prefix" placeholder="Token Prefix (e.g. KD)" required><input type="text" id="new-lab-id" placeholder="Login ID" required><input type="text" id="new-lab-pass" placeholder="Password" required><button type="submit" class="btn-success">Save Laboratory</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-manage-labs')">Close</button></div></div>
     <div id="modal-manage-committee" class="modal"><div class="modal-content"><h2 style="text-align: center;">Manage Committee</h2><div id="admin-committee-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div><h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add Member</h3><form id="form-add-committee"><input type="text" id="new-com-name" placeholder="Full Name" required><input type="text" id="new-com-id" placeholder="Mobile Number" required><input type="text" id="new-com-pass" placeholder="Password" required><button type="submit" class="btn-success">Save Committee Member</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-manage-committee')">Close</button></div></div>
@@ -439,6 +443,25 @@
     <div id="modal-export-file" class="modal"><div class="modal-content"><h2 style="text-align: center;" id="export-modal-title">Export CSV Log</h2><div class="form-group"><label>Enter File Name</label><input type="text" id="export-file-name" placeholder="Medical_Report_March_2026"></div><input type="hidden" id="export-type-flag"><div class="btn-group" style="width: 100%;"><button class="btn-outline" onclick="closeModal('modal-export-file')">Cancel</button><button class="btn-success" onclick="executeExport()">Download</button></div></div></div>
     <div id="modal-delete-confirm" class="modal"><div class="modal-content" style="align-items: center;"><i class="ph-fill ph-warning-circle" style="font-size: 50px; color: var(--danger); margin-bottom: 15px;"></i><h2 style="margin-bottom: 5px;">Delete Report?</h2><p style="text-align: center; color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">Are you sure you want to delete this report? This action cannot be undone.</p><input type="hidden" id="delete-req-id"><div class="btn-group" style="width: 100%;"><button class="btn-outline" onclick="closeModal('modal-delete-confirm')">Cancel</button><button class="btn-danger" onclick="executeDelete()">Confirm Delete</button></div></div></div>
     <div id="modal-batrisi-programs" class="modal"><div class="modal-content"><h2 style="text-align: center;">Manage Programs</h2><div id="admin-program-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div><h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add New Program</h3><form id="form-add-program"><div class="form-group"><label>Program Title *</label><input type="text" id="prog-title" placeholder="e.g. Annual Medical Camp" required></div><div class="form-group"><label>Message / Description *</label><textarea id="prog-msg" rows="3" placeholder="Enter program details..." required></textarea></div><div class="form-group"><label>Image (Upload or Paste URL)</label><input type="file" id="prog-img-file" accept="image/png, image/jpeg, image/jpg" style="background: transparent; padding: 0; border: none; margin-bottom: 10px;"><input type="url" id="prog-img" placeholder="OR Paste URL (https://i.ibb.co/...)"></div><div class="form-group"><label>Video (Upload or Paste URL)</label><input type="file" id="prog-vid-file" accept="video/mp4,video/x-m4v,video/*" style="background: transparent; padding: 0; border: none; margin-bottom: 5px;"><div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;">Max file size: 100MB</div><input type="url" id="prog-vid-url" placeholder="OR Paste Video URL (YouTube, Insta, FB, MP4)"><div id="video-upload-progress-container" style="display:none; margin-top:10px;"><div style="font-size: 12px; color: var(--accent-color); margin-bottom: 5px;" id="video-upload-text">Uploading Video: 0%</div><div style="width: 100%; background: var(--border-color); height: 6px; border-radius: 3px; overflow: hidden;"><div id="video-upload-bar" style="width: 0%; background: var(--success); height: 100%;"></div></div><button type="button" class="btn-danger btn-small" id="btn-cancel-upload" style="margin-top: 10px; width: auto;"><i class="ph ph-x"></i> Cancel Upload</button></div></div><button type="submit" class="btn-success" style="margin-top: 15px;">Post Update</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-batrisi-programs')">Close</button></div></div>
+
+    <!-- NEW MODAL: Send Notification to All -->
+    <div id="modal-send-notification" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align: center;">Send Broadcast Notification</h2>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="notif-title" placeholder="e.g. Important Update" required>
+            </div>
+            <div class="form-group">
+                <label>Message</label>
+                <textarea id="notif-message" rows="4" placeholder="Enter your message here..." required></textarea>
+            </div>
+            <div class="btn-group">
+                <button class="btn-outline" onclick="closeModal('modal-send-notification')">Cancel</button>
+                <button class="btn-success" onclick="sendBroadcastNotification()">Send Now</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ================= MEMBER DASHBOARD ================= -->
     <div id="screen-member" class="screen">
@@ -544,7 +567,7 @@
                 </div>
             </div>
             <div class="card" id="lab-monthly-totals" style="margin-top: 15px; border-color: var(--accent-color);"><h3 style="margin-bottom: 12px; font-size: 16px; color: var(--text-primary);">Current Month Summary</h3><div class="grid-2"><div class="action-card" style="background: rgba(0, 149, 246, 0.1); border-color: var(--accent-color); padding: 15px 10px;"><span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">Total W/O Discount</span><span id="lab-total-original" style="font-size: 18px; font-weight: 800; color: var(--accent-color);">₹ 0.00</span></div><div class="action-card" style="background: rgba(0, 186, 124, 0.1); border-color: var(--success); padding: 15px 10px;"><span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">Total With Discount</span><span id="lab-total-final" style="font-size: 18px; font-weight: 800; color: var(--success);">₹ 0.00</span></div></div></div>
-            <div id="lab-overview-section" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 20px;"><h2>Request Overview</h2><div class="table-container"><table><thead><tr><th>Token</th><th>Status</th><th>Patient Details</th><th>Medical Details</th><th>Amount (Paid)</th></tr></thead><tbody id="lab-request-list-body"></tbody></table></div></div>
+            <div id="lab-overview-section" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 20px;"><h2>Request Overview</h2><div class="table-container"> <table> <thead> <tr><th>Token</th><th>Status</th><th>Patient Details</th><th>Medical Details</th><th>Amount (Paid)</th></tr> </thead> <tbody id="lab-request-list-body"></tbody> </table> </div></div>
             <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin-top: 30px; border-top: 1px solid var(--border-color);"><b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br>Sheth Shri Hiralal Hargovandas Batrishi Hall<br>Near R.T.O Circle, Subhashbridge, Collector Kacheri<br>Ahmedabad - 380027<br><br>Phone: 079-27557668<br>Mobile: +91 95864 23232<br>Email: <a href="mailto:32cedusociety@gmail.com" style="color: var(--accent-color); text-decoration: none;">32cedusociety@gmail.com</a><br><br>GSTIN: 24AAATS6070J1ZE<br>Reg No: GH/230<br>Reg Date: 10/10/1944</div>
         </div>
         <div class="bottom-nav"><div class="nav-item active" onclick="resetLabSearch()"><i class="ph-fill ph-magnifying-glass"></i><span>Search</span></div><div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div></div>
@@ -579,9 +602,9 @@
         messaging = firebase.messaging();
         messaging.onMessage((payload) => {
             console.log("Message received: ", payload);
-            showToast(`${payload.notification.title}: ${payload.notification.body}`);
+            showToast(`${payload.notification?.title || payload.data?.title}: ${payload.notification?.body || payload.data?.body}`);
             if (currentUser && currentUser.id) {
-                addNotification(payload.notification.body, currentUser.id, payload.notification.title);
+                addNotification(payload.notification?.body || payload.data?.body, currentUser.id, payload.notification?.title || payload.data?.title);
             }
         });
     }
@@ -637,6 +660,21 @@
         } catch (error) {
             console.error("Error sending notification:", error);
         }
+    }
+
+    // Function to send broadcast from admin modal
+    function sendBroadcastNotification() {
+        const title = document.getElementById('notif-title').value.trim();
+        const message = document.getElementById('notif-message').value.trim();
+        if (!title || !message) {
+            showToast("Please enter both title and message", "error");
+            return;
+        }
+        sendNotificationToAll(title, message);
+        closeModal('modal-send-notification');
+        document.getElementById('notif-title').value = '';
+        document.getElementById('notif-message').value = '';
+        showToast("Notification sent to all members!");
     }
 
     // ================= OPTIMIZED NOTIFICATION LISTENER =================
@@ -777,7 +815,7 @@
             <h2>Committee Members Introduction</h2>
             <div class="table-container" style="margin-top: 10px; margin-bottom: 10px;">
                 <table style="width: 100%; min-width: 600px; font-family: 'Inter', sans-serif;">
-                    <thead><tr><th>No</th><th>Name</th><th>Designation</th><th>Native</th><th>Mobile Number</th></tr></thead>
+                    <thead> <tr><th>No</th><th>Name</th><th>Designation</th><th>Native</th><th>Mobile Number</th></tr> </thead>
                     <tbody>
                         <tr><td>1</td><td>HITENDRABHAI JASHWANTLAL SHAH</td><td>PRESIDENT</td><td>BAHIYAL</td><td>9825698298</td></tr>
                         <tr><td>2</td><td>GUNWANTLAL CHANDULAL SHAH</td><td>VICE PRESIDENT</td><td>VALAD</td><td>9825441916</td></tr>
@@ -911,7 +949,7 @@
         }
     }
 
-    // Batrisi Updates Real-time (kept as is, but now without heavy overhead)
+    // Batrisi Updates Real-time
     let batrisiUpdates = [];
     db.collection('batrisi_updates').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
         batrisiUpdates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -931,7 +969,7 @@
         }
     });
 
-    // Member database – we remove listener and fetch only when needed
+    // Member database – fetch once when needed
     async function loadMemberDatabase() {
         const snapshot = await db.collection('members').get();
         memberDatabase = {};
@@ -1175,7 +1213,6 @@
             }
         } else if (role === 'Member') {
             if (pass === 'Bat@123') {
-                // Load member database if not loaded
                 if (Object.keys(memberDatabase).length === 0) await loadMemberDatabase();
                 const memberInfo = memberDatabase[id.toUpperCase()];
                 if (memberInfo) {
@@ -2231,7 +2268,7 @@
         if (labTotalFinalEl) labTotalFinalEl.innerText = `₹ ${totalFinal.toFixed(2)}`;
         tbody.innerHTML = '';
         if(myReqs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-secondary);">No requests found.</td></tr>';
+            tbody.innerHTML = ' <tr><td colspan="5" style="text-align:center; color:var(--text-secondary);">No requests found.</td></tr>';
         } else {
             myReqs.forEach(req => {
                 let statusBadge = `<span class="badge ${req.status.toLowerCase()}">${req.status}</span>`;
