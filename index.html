@@ -7,11 +7,8 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#000000">
 
-    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
-    <!-- External Libraries: Excel, PDF, QR Generation, QR Scanner -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -25,7 +22,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
     <style>
-        /* ================= PREMIUM UI THEME ================= */
+        /* [Same as before – keep all your styles] */
         :root {
             --bg-base: #000000;
             --bg-surface: #0a0a0a;
@@ -42,26 +39,17 @@
             --border-color: #262626;
             --border-light: #363636;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-base); color: var(--text-primary); height: 100dvh; width: 100vw; overflow: hidden; display: flex; justify-content: center; }
-
-        /* APP WRAPPER */
         #app-wrapper { width: 100%; max-width: 480px; height: 100%; background-color: var(--bg-base); position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
         @media (min-width: 768px) { #app-wrapper { max-width: 100%; } }
-
-        /* SCREENS */
         .screen { display: none; flex-direction: column; height: 100%; width: 100%; position: absolute; top: 0; left: 0; background: var(--bg-base); z-index: 10; animation: fadeIn 0.3s ease; }
         .screen.active { display: flex; }
         .content-area { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; scroll-behavior: smooth; }
         .content-area::-webkit-scrollbar { display: none; }
-
-        /* GLASS HEADER */
         .header { background: var(--bg-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 20px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 30; display: flex; justify-content: space-between; align-items: center; }
         .header-title { font-weight: 700; font-size: 18px; letter-spacing: -0.5px; }
         .header-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-
-        /* NOTIFICATION STYLES */
         .notification-container { position: relative; }
         .bell { font-size: 24px; cursor: pointer; position: relative; color: var(--text-primary); transition: transform 0.2s; }
         .bell:active { transform: scale(0.9); }
@@ -73,15 +61,11 @@
         .notif-dropdown li:hover { background: rgba(255,255,255,0.05); }
         .notif-dropdown li.unread { background: rgba(0, 149, 246, 0.1); border-left: 3px solid var(--accent-color); }
         .notif-dropdown li small { color: var(--text-secondary); font-size: 10px; margin-top: 4px; display: block; }
-
-        /* TYPOGRAPHY */
         .brand-gradient { background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-bottom: 10px; text-align: center; }
         h2 { font-size: 20px; font-weight: 700; margin-bottom: 15px; }
         h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; color: var(--accent-color); }
         h4 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
-
-        /* CARDS */
         .card { background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.2s; }
         .card:active { transform: scale(0.99); }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
@@ -90,34 +74,24 @@
         .badge.approved { background: rgba(0, 186, 124, 0.2); color: var(--success); }
         .badge.declined { background: rgba(237, 73, 86, 0.2); color: var(--danger); }
         .badge.completed { background: rgba(0, 149, 246, 0.2); color: var(--accent-color); }
-        
         .info-group { margin-bottom: 12px; }
         .info-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
         .info-value { font-size: 15px; font-weight: 500; color: var(--text-primary); word-break: break-word; }
-        
         .detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
         .detail-label { color: var(--text-secondary); }
-
         .section-box { background: var(--bg-surface); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border-light); }
-
-        /* FORMS & INPUTS */
         .form-group { margin-bottom: 16px; position: relative; }
         label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
         input, select, textarea { width: 100%; background: var(--bg-surface); border: 1px solid var(--border-light); color: var(--text-primary); padding: 16px; border-radius: 16px; font-size: 15px; outline: none; transition: border-color 0.2s, background 0.2s; appearance: none; }
-        
         input[type="date"] { color: var(--text-primary); cursor: pointer; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-        
         input:focus, select:focus, textarea:focus { border-color: var(--accent-color); background: var(--bg-elevated); }
         input:read-only, textarea:read-only { opacity: 0.7; cursor: not-allowed; background: var(--bg-base); border-color: transparent; }
         .password-wrapper { position: relative; }
         .toggle-password { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--text-secondary); cursor: pointer; }
-        
         .checkbox-wrapper { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
         .checkbox-wrapper input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent-color); appearance: auto; -webkit-appearance: auto; cursor: pointer; }
         .checkbox-wrapper label { margin: 0; font-size: 14px; color: var(--text-secondary); cursor: pointer; }
-
-        /* BUTTONS */
         button { width: 100%; border: none; padding: 16px; border-radius: 16px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s, opacity 0.2s; color: #fff; display: flex; justify-content: center; align-items: center; gap: 8px; }
         button:active { transform: scale(0.96); }
         button:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
@@ -128,112 +102,60 @@
         .btn-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text-primary); }
         .btn-group { display: flex; gap: 10px; margin-top: 15px; }
         .btn-small { padding: 8px 12px; font-size: 13px; border-radius: 10px; width: auto; }
-
-        /* DRAG AND DROP */
         .dropzone { border: 2px dashed var(--border-light); border-radius: 20px; padding: 40px 20px; text-align: center; color: var(--text-secondary); background: var(--bg-surface); cursor: pointer; transition: 0.2s; }
         .dropzone.dragover { border-color: var(--accent-color); background: rgba(0, 149, 246, 0.1); }
         .dropzone i { font-size: 40px; margin-bottom: 10px; color: var(--text-primary); }
-
-        /* BOTTOM NAV */
         .bottom-nav { background: var(--bg-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 15px 0 calc(15px + env(safe-area-inset-bottom)); position: absolute; bottom: 0; width: 100%; z-index: 30; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); cursor: pointer; transition: color 0.2s; width: 100%; }
         .nav-item.active { color: var(--text-primary); }
         .nav-item i { font-size: 26px; transition: transform 0.2s; }
         .nav-item.active i { transform: scale(1.15); font-weight: bold; }
         .nav-item span { font-size: 11px; margin-top: 4px; font-weight: 500; }
-
-        /* TOAST NOTIFICATION */
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: var(--bg-elevated); color: var(--text-primary); padding: 14px 24px; border-radius: 30px; font-size: 14px; font-weight: 500; border: 1px solid var(--border-light); box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 9999; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; gap: 10px; }
         .toast.show { transform: translateX(-50%) translateY(0); }
-        
-        /* GRID LAYOUT FOR ADMIN */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .action-card { background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; text-align: center; transition: background 0.2s;}
         .action-card:hover { background: var(--bg-elevated); }
         .action-card i { font-size: 32px; color: var(--accent-color); }
         .action-card span { font-size: 13px; font-weight: 600; }
-
-        /* MODAL */
         .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; display: none; justify-content: center; align-items: flex-end; backdrop-filter: blur(5px); }
         .modal.active { display: flex; }
         .modal-content { background: var(--bg-surface); width: 100%; border-radius: 24px 24px 0 0; padding: 30px 20px 50px; animation: slideUp 0.3s cubic-bezier(0.1, 0.8, 0.2, 1); max-height: 85vh; overflow-y: auto; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* TABLES FOR ADMIN */
         .table-container { width: 100%; overflow-x: auto; background: var(--bg-elevated); border-radius: 12px; border: 1px solid var(--border-color); margin-top: 15px; }
         table { width: 100%; border-collapse: collapse; min-width: 800px; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; }
         th { background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; position: sticky; top: 0; z-index: 10;}
         tr:hover { background: rgba(255,255,255,0.02); }
         td { color: var(--text-primary); }
-
-        /* QR CODE STYLING */
         .qr-wrapper { background: #fff; padding: 15px; border-radius: 12px; display: inline-block; margin-top: 10px; }
         .img-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 12px; margin-top: 10px; border: 1px solid var(--border-light); display: none; }
         #reader { border-radius: 16px; overflow: hidden; border: 2px solid var(--accent-color); }
         #reader video { object-fit: cover; }
-
-        /* BATRISI UPDATE CARDS */
         .update-card { background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .update-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 15px; background: var(--bg-surface); }
         .update-meta { font-size: 12px; color: var(--accent-color); margin-bottom: 8px; font-weight: 600; display: flex; gap: 10px; align-items: center;}
         .update-msg { font-size: 15px; color: var(--text-primary); line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;}
-        
-        .video-responsive-container {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
-            height: 0;
-            overflow: hidden;
-            width: 100%;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            background: #000;
-        }
-        .video-responsive-container iframe,
-        .video-responsive-container video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        .ig-fallback-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--gradient-primary);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            margin-bottom: 15px;
-            font-size: 14px;
-            transition: transform 0.2s;
-        }
-        .ig-fallback-btn:active {
-            transform: scale(0.96);
-        }
-
+        .video-responsive-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; border-radius: 12px; margin-bottom: 15px; background: #000; }
+        .video-responsive-container iframe, .video-responsive-container video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        .ig-fallback-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--gradient-primary); color: white; padding: 12px 20px; border-radius: 12px; text-decoration: none; font-weight: 600; margin-bottom: 15px; font-size: 14px; transition: transform 0.2s; }
+        .ig-fallback-btn:active { transform: scale(0.96); }
     </style>
 </head>
 <body>
 
 <div id="app-wrapper">
 
-    <!-- TOAST -->
     <div id="toast" class="toast"><i id="toast-icon" class="ph-fill ph-check-circle" style="color: var(--success); font-size: 20px;"></i> <span id="toast-msg">Success</span></div>
 
-    <!-- ================= LOGIN SCREEN ================= -->
+    <!-- LOGIN SCREEN (unchanged) -->
     <div id="screen-login" class="screen active" style="padding: 20px; overflow-y: auto; display: flex; flex-direction: column;">
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <i class="ph-fill ph-shield-check" style="font-size: 50px; color: var(--accent-color); margin-bottom: 10px;"></i>
                 <h1 class="brand-gradient" style="font-size: 24px;">Batrisi All In One</h1>
             </div>
-
             <div class="card" style="padding: 20px;">
                 <form id="login-form">
                     <div class="form-group">
@@ -264,8 +186,6 @@
                 </form>
             </div>
         </div>
-
-        <!-- SOCIETY DETAILS FOOTER -->
         <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6;">
             <b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br>
             Sheth Shri Hiralal Hargovandas Batrishi Hall<br>
@@ -280,7 +200,7 @@
         </div>
     </div>
 
-    <!-- ================= ADMIN DASHBOARD ================= -->
+    <!-- ADMIN DASHBOARD -->
     <div id="screen-admin" class="screen">
         <div class="header">
             <div>
@@ -288,7 +208,6 @@
                 <div class="header-subtitle">Welcome, <span id="admin-name-display">Admin</span></div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <!-- Notification Bell -->
                 <div class="notification-container">
                     <div class="bell" onclick="toggleNotifications()">
                         <i class="ph ph-bell"></i>
@@ -322,7 +241,6 @@
                 <div class="action-card" onclick="refreshSystemData()">
                     <i class="ph ph-arrows-clockwise"></i><span>Refresh System Data</span>
                 </div>
-                <!-- NEW: Send Notification to All -->
                 <div class="action-card" onclick="openModal('modal-send-notification')">
                     <i class="ph ph-broadcast"></i><span>Send Notification to All</span>
                 </div>
@@ -383,51 +301,26 @@
                 </select>
             </div>
 
-            <!-- ADMIN EXPORT BUTTONS -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto;">
                 <button class="btn-small btn-outline" style="border-color: var(--success); color: var(--success);" onclick="executeNewExport('excel')"><i class="ph ph-file-xls"></i> Export Excel</button>
                 <button class="btn-small btn-outline" style="border-color: var(--danger); color: var(--danger);" onclick="executeNewExport('pdf')"><i class="ph ph-file-pdf"></i> Export PDF</button>
                 <button class="btn-small btn-outline" style="border-color: var(--accent-color); color: var(--accent-color);" onclick="executeNewExport('csv')"><i class="ph ph-file-csv"></i> Export CSV</button>
             </div>
             
-            <!-- Table Container for Admin (Pagination added) -->
             <div class="table-container" id="admin-table-container">
                 <table id="admin-request-table">
                     <thead>
-                          <tr>
-                            <th>Token</th>
-                            <th>Status</th>
-                            <th>Patient Details</th>
-                            <th>Member Info</th>
-                            <th>Lab & Medical Details</th>
-                            <th>Amount (Paid)</th>
-                            <th>Committee Info</th>
-                            <th>Action</th>
-                          </tr>
+                        <tr><th>Token</th><th>Status</th><th>Patient Details</th><th>Member Info</th><th>Lab & Medical Details</th><th>Amount (Paid)</th><th>Committee Info</th><th>Action</th> </tr>
                     </thead>
-                    <tbody id="admin-request-list-body">
-                        <!-- Dynamic Content -->
-                    </tbody>
+                    <tbody id="admin-request-list-body"></tbody>
                 </table>
-                <div id="admin-pagination-controls" style="padding: 10px; text-align: center; display: flex; justify-content: center; gap: 10px;"></div>
+                <div id="admin-pagination-controls" style="padding: 10px; text-align: center;"></div>
             </div>
             <p id="admin-empty-msg" style="text-align: center; color: var(--text-secondary); margin-top: 20px; display: none;">No requests found.</p>
-
-            <!-- SOCIETY DETAILS FOOTER -->
             <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin-top: 30px; border-top: 1px solid var(--border-color);">
-                <b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br>
-                Sheth Shri Hiralal Hargovandas Batrishi Hall<br>
-                Near R.T.O Circle, Subhashbridge, Collector Kacheri<br>
-                Ahmedabad - 380027<br><br>
-                Phone: 079-27557668<br>
-                Mobile: +91 95864 23232<br>
-                Email: <a href="mailto:32cedusociety@gmail.com" style="color: var(--accent-color); text-decoration: none;">32cedusociety@gmail.com</a><br><br>
-                GSTIN: 24AAATS6070J1ZE<br>
-                Reg No: GH/230<br>
-                Reg Date: 10/10/1944
+                <b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br> Sheth Shri Hiralal Hargovandas Batrishi Hall<br> Near R.T.O Circle, Subhashbridge, Collector Kacheri<br> Ahmedabad - 380027<br><br> Phone: 079-27557668<br> Mobile: +91 95864 23232<br> Email: <a href="mailto:32cedusociety@gmail.com" style="color: var(--accent-color); text-decoration: none;">32cedusociety@gmail.com</a><br><br> GSTIN: 24AAATS6070J1ZE<br> Reg No: GH/230<br> Reg Date: 10/10/1944
             </div>
         </div>
-        <!-- Admin Bottom Nav -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="switchScreen('screen-admin'); renderAdminRequests('All');"><i class="ph-fill ph-squares-four"></i><span>Panel</span></div>
             <div class="nav-item" onclick="openExportModal('csv')"><i class="ph ph-file-arrow-down"></i><span>Export</span></div>
@@ -435,7 +328,7 @@
         </div>
     </div>
 
-    <!-- Modals for Admin Management (all previous modals) -->
+    <!-- MODALS (keep as before, but add the new send-notification modal) -->
     <div id="modal-upload-excel" class="modal"><div class="modal-content"><h2 style="text-align: center;">Upload Member Database</h2><p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">Upload Excel (.xlsx/.csv) containing Member Details</p><div style="background: rgba(240, 148, 51, 0.1); border: 1px solid rgba(240, 148, 51, 0.3); padding: 12px; border-radius: 12px; margin-bottom: 15px; font-size: 12px; color: var(--warning);"><b>Required Columns:</b> MemberNumber, MemberName, Address, NativeName, MobileNumber</div><div class="dropzone" id="excel-dropzone" onclick="document.getElementById('excel-file').click()"><i class="ph ph-file-arrow-up"></i><div id="excel-file-name">Tap to browse or drop .csv / .xlsx file here</div><input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleExcelUpload(event)"></div><button class="btn-outline" style="margin-top: 20px;" onclick="closeModal('modal-upload-excel')">Cancel</button></div></div>
     <div id="modal-manage-labs" class="modal"><div class="modal-content"><h2 style="text-align: center;">Manage Laboratories</h2><div id="admin-lab-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div><h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add New Lab</h3><form id="form-add-lab"><input type="text" id="new-lab-name" placeholder="Lab Name (e.g. K.D Lab)" required><input type="text" id="new-lab-prefix" placeholder="Token Prefix (e.g. KD)" required><input type="text" id="new-lab-id" placeholder="Login ID" required><input type="text" id="new-lab-pass" placeholder="Password" required><button type="submit" class="btn-success">Save Laboratory</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-manage-labs')">Close</button></div></div>
     <div id="modal-manage-committee" class="modal"><div class="modal-content"><h2 style="text-align: center;">Manage Committee</h2><div id="admin-committee-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div><h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add Member</h3><form id="form-add-committee"><input type="text" id="new-com-name" placeholder="Full Name" required><input type="text" id="new-com-id" placeholder="Mobile Number" required><input type="text" id="new-com-pass" placeholder="Password" required><button type="submit" class="btn-success">Save Committee Member</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-manage-committee')">Close</button></div></div>
@@ -443,47 +336,15 @@
     <div id="modal-export-file" class="modal"><div class="modal-content"><h2 style="text-align: center;" id="export-modal-title">Export CSV Log</h2><div class="form-group"><label>Enter File Name</label><input type="text" id="export-file-name" placeholder="Medical_Report_March_2026"></div><input type="hidden" id="export-type-flag"><div class="btn-group" style="width: 100%;"><button class="btn-outline" onclick="closeModal('modal-export-file')">Cancel</button><button class="btn-success" onclick="executeExport()">Download</button></div></div></div>
     <div id="modal-delete-confirm" class="modal"><div class="modal-content" style="align-items: center;"><i class="ph-fill ph-warning-circle" style="font-size: 50px; color: var(--danger); margin-bottom: 15px;"></i><h2 style="margin-bottom: 5px;">Delete Report?</h2><p style="text-align: center; color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">Are you sure you want to delete this report? This action cannot be undone.</p><input type="hidden" id="delete-req-id"><div class="btn-group" style="width: 100%;"><button class="btn-outline" onclick="closeModal('modal-delete-confirm')">Cancel</button><button class="btn-danger" onclick="executeDelete()">Confirm Delete</button></div></div></div>
     <div id="modal-batrisi-programs" class="modal"><div class="modal-content"><h2 style="text-align: center;">Manage Programs</h2><div id="admin-program-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div><h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add New Program</h3><form id="form-add-program"><div class="form-group"><label>Program Title *</label><input type="text" id="prog-title" placeholder="e.g. Annual Medical Camp" required></div><div class="form-group"><label>Message / Description *</label><textarea id="prog-msg" rows="3" placeholder="Enter program details..." required></textarea></div><div class="form-group"><label>Image (Upload or Paste URL)</label><input type="file" id="prog-img-file" accept="image/png, image/jpeg, image/jpg" style="background: transparent; padding: 0; border: none; margin-bottom: 10px;"><input type="url" id="prog-img" placeholder="OR Paste URL (https://i.ibb.co/...)"></div><div class="form-group"><label>Video (Upload or Paste URL)</label><input type="file" id="prog-vid-file" accept="video/mp4,video/x-m4v,video/*" style="background: transparent; padding: 0; border: none; margin-bottom: 5px;"><div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;">Max file size: 100MB</div><input type="url" id="prog-vid-url" placeholder="OR Paste Video URL (YouTube, Insta, FB, MP4)"><div id="video-upload-progress-container" style="display:none; margin-top:10px;"><div style="font-size: 12px; color: var(--accent-color); margin-bottom: 5px;" id="video-upload-text">Uploading Video: 0%</div><div style="width: 100%; background: var(--border-color); height: 6px; border-radius: 3px; overflow: hidden;"><div id="video-upload-bar" style="width: 0%; background: var(--success); height: 100%;"></div></div><button type="button" class="btn-danger btn-small" id="btn-cancel-upload" style="margin-top: 10px; width: auto;"><i class="ph ph-x"></i> Cancel Upload</button></div></div><button type="submit" class="btn-success" style="margin-top: 15px;">Post Update</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-batrisi-programs')">Close</button></div></div>
+    <div id="modal-send-notification" class="modal"><div class="modal-content"><h2 style="text-align: center;">Send Broadcast Notification</h2><div class="form-group"><label>Title</label><input type="text" id="notif-title" placeholder="e.g. Important Update" required></div><div class="form-group"><label>Message</label><textarea id="notif-message" rows="4" placeholder="Enter your message here..." required></textarea></div><div class="btn-group"><button class="btn-outline" onclick="closeModal('modal-send-notification')">Cancel</button><button class="btn-success" onclick="sendBroadcastNotification()">Send Now</button></div></div></div>
 
-    <!-- NEW MODAL: Send Notification to All -->
-    <div id="modal-send-notification" class="modal">
-        <div class="modal-content">
-            <h2 style="text-align: center;">Send Broadcast Notification</h2>
-            <div class="form-group">
-                <label>Title</label>
-                <input type="text" id="notif-title" placeholder="e.g. Important Update" required>
-            </div>
-            <div class="form-group">
-                <label>Message</label>
-                <textarea id="notif-message" rows="4" placeholder="Enter your message here..." required></textarea>
-            </div>
-            <div class="btn-group">
-                <button class="btn-outline" onclick="closeModal('modal-send-notification')">Cancel</button>
-                <button class="btn-success" onclick="sendBroadcastNotification()">Send Now</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= MEMBER DASHBOARD ================= -->
+    <!-- MEMBER DASHBOARD (unchanged) -->
     <div id="screen-member" class="screen">
         <div class="header">
-            <div>
-                <div class="header-title">Member Hub</div>
-                <div class="header-subtitle" id="member-header-name">Welcome</div>
-            </div>
-            <div class="notification-container">
-                <div class="bell" onclick="toggleNotifications()">
-                    <i class="ph ph-bell"></i>
-                    <span id="notifCount-member" class="notif-count">0</span>
-                </div>
-                <div id="notifDropdown-member" class="notif-dropdown">
-                    <h4>Notifications</h4>
-                    <ul id="notifList-member"></ul>
-                </div>
-            </div>
+            <div><div class="header-title">Member Hub</div><div class="header-subtitle" id="member-header-name">Welcome</div></div>
+            <div class="notification-container"><div class="bell" onclick="toggleNotifications()"><i class="ph ph-bell"></i><span id="notifCount-member" class="notif-count">0</span></div><div id="notifDropdown-member" class="notif-dropdown"><h4>Notifications</h4><ul id="notifList-member"></ul></div></div>
         </div>
-        <div class="content-area" id="member-content-area">
-            <!-- Dynamic Content -->
-        </div>
+        <div class="content-area" id="member-content-area"></div>
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-member-apply" onclick="renderMemberApply()"><i class="ph-fill ph-plus-circle"></i><span>Apply</span></div>
             <div class="nav-item" id="nav-member-status" onclick="renderMemberStatus()"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
@@ -492,27 +353,13 @@
         </div>
     </div>
 
-    <!-- ================= COMMITTEE DASHBOARD ================= -->
+    <!-- COMMITTEE DASHBOARD -->
     <div id="screen-committee" class="screen">
         <div class="header">
-            <div>
-                <div class="header-title">Committee Panel</div>
-                <div class="header-subtitle" id="committee-header-name">Welcome</div>
-            </div>
-            <div class="notification-container">
-                <div class="bell" onclick="toggleNotifications()">
-                    <i class="ph ph-bell"></i>
-                    <span id="notifCount-committee" class="notif-count">0</span>
-                </div>
-                <div id="notifDropdown-committee" class="notif-dropdown">
-                    <h4>Notifications</h4>
-                    <ul id="notifList-committee"></ul>
-                </div>
-            </div>
+            <div><div class="header-title">Committee Panel</div><div class="header-subtitle" id="committee-header-name">Welcome</div></div>
+            <div class="notification-container"><div class="bell" onclick="toggleNotifications()"><i class="ph ph-bell"></i><span id="notifCount-committee" class="notif-count">0</span></div><div id="notifDropdown-committee" class="notif-dropdown"><h4>Notifications</h4><ul id="notifList-committee"></ul></div></div>
         </div>
-        <div class="content-area" id="committee-request-list">
-            <!-- Dynamic Content -->
-        </div>
+        <div class="content-area" id="committee-request-list"></div>
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-committee-inbox" onclick="renderCommitteeRequests()"><i class="ph-fill ph-tray"></i><span>Inbox</span></div>
             <div class="nav-item" id="nav-committee-programs" onclick="renderCommitteePrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
@@ -521,51 +368,15 @@
         </div>
     </div>
 
-    <!-- Modal: Decline Reason, View Photo, Change Password -->
-    <div id="modal-decline" class="modal"><div class="modal-content"><h2>Decline Request</h2><div class="form-group"><label>Reason for rejection</label><textarea id="decline-reason" rows="3" placeholder="Enter reason..."></textarea></div><input type="hidden" id="decline-request-id"><div class="btn-group"><button class="btn-outline" onclick="closeModal('modal-decline')">Cancel</button><button class="btn-danger" onclick="confirmDecline()">Confirm Decline</button></div></div></div>
-    <div id="modal-view-photo" class="modal"><div class="modal-content" style="background: transparent; align-items: center; padding-bottom: 20px;"><img id="full-id-photo" src="" style="max-width: 100%; max-height: 70vh; border-radius: 12px; object-fit: contain;"><button class="btn-outline" style="margin-top: 20px; background: rgba(0,0,0,0.5); color: white; border: none;" onclick="closeModal('modal-view-photo')"><i class="ph ph-x"></i> Close</button></div></div>
-    <div id="modal-change-password-committee" class="modal"><div class="modal-content"><h2 style="text-align: center;">Change Password</h2><form id="form-change-password"><div class="form-group"><label>Old Password</label><input type="password" id="cp-old" required></div><div class="form-group"><label>New Password</label><input type="password" id="cp-new" required></div><div class="form-group"><label>Confirm New Password</label><input type="password" id="cp-confirm" required></div><button type="submit" class="btn-success" style="margin-top: 15px;">Update Password</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-change-password-committee')">Cancel</button></div></div>
-
-    <!-- ================= LABORATORY DASHBOARD ================= -->
+    <!-- LAB DASHBOARD (unchanged) -->
     <div id="screen-lab" class="screen">
         <div class="header">
-            <div>
-                <div class="header-title">Lab Portal</div>
-                <div class="header-subtitle" id="lab-header-name">Welcome</div>
-            </div>
-            <div class="notification-container">
-                <div class="bell" onclick="toggleNotifications()">
-                    <i class="ph ph-bell"></i>
-                    <span id="notifCount-lab" class="notif-count">0</span>
-                </div>
-                <div id="notifDropdown-lab" class="notif-dropdown">
-                    <h4>Notifications</h4>
-                    <ul id="notifList-lab"></ul>
-                </div>
-            </div>
+            <div><div class="header-title">Lab Portal</div><div class="header-subtitle" id="lab-header-name">Welcome</div></div>
+            <div class="notification-container"><div class="bell" onclick="toggleNotifications()"><i class="ph ph-bell"></i><span id="notifCount-lab" class="notif-count">0</span></div><div id="notifDropdown-lab" class="notif-dropdown"><h4>Notifications</h4><ul id="notifList-lab"></ul></div></div>
         </div>
         <div class="content-area">
-            <div class="card">
-                <h2>Search Token</h2>
-                <button class="btn-outline" onclick="startScanner()" style="margin-bottom: 15px; border-color: var(--accent-color); color: var(--accent-color);"><i class="ph ph-qr-code" style="font-size: 20px;"></i> Scan Token (Camera)</button>
-                <div style="text-align: center; color: var(--text-secondary); margin-bottom: 15px; font-size: 12px;">— OR ENTER MANUALLY —</div>
-                <div class="form-group"><input type="text" id="lab-search-token" placeholder="e.g. SAD-001" style="text-transform: uppercase;"></div>
-                <button class="btn-primary" onclick="searchToken()"><i class="ph ph-magnifying-glass"></i> Search</button>
-            </div>
-            <div id="lab-result-area" style="display: none;">
-                <div class="card" id="lab-request-details"><!-- Dynamic Details --></div>
-                <div class="card">
-                    <h2>Process Report</h2>
-                    <div class="form-group"><label>Billing Date (DD/MM/YYYY)</label><input type="date" id="lab-billing-date" required></div>
-                    <div class="form-group"><label>Report Name</label><input type="text" id="lab-report-name" placeholder="e.g. COMPLETE BLOOD COUNT" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()"></div>
-                    <div class="form-group"><label>Total Report Amount (₹)</label><input type="number" id="lab-original-amount" placeholder="0.00" oninput="calculateDiscount()"></div>
-                    <div class="form-group"><label>Discount Amount (₹)</label><input type="text" id="lab-discount-amount" value="0.00" readonly style="color: var(--warning); font-weight: bold;"></div>
-                    <div class="form-group"><label>Batrisi Sahay Amount (₹)</label><input type="text" id="lab-sahay-amount" value="0.00" readonly style="color: var(--success); font-weight: bold;"></div>
-                    <div class="form-group"><label>Upload Invoice (Photo/Image)</label><input type="file" id="lab-invoice-file" accept="image/png, image/jpeg, image/jpg" capture="environment" onchange="handleInvoiceUpload(event)" style="background: transparent; padding: 0; border: none;"><img id="invoice-preview" class="img-preview" src=""></div>
-                    <div class="detail-row" style="font-size: 18px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 15px;"><span class="detail-label" style="color: var(--text-primary);">Final Payable Amount:</span><span id="lab-final-amount" style="font-weight: 800; color: var(--accent-color);">₹ 0.00</span></div>
-                    <button class="btn-success" style="margin-top: 20px;" onclick="closeLabReport()">Complete & Close Report</button>
-                </div>
-            </div>
+            <div class="card"><h2>Search Token</h2><button class="btn-outline" onclick="startScanner()" style="margin-bottom: 15px; border-color: var(--accent-color); color: var(--accent-color);"><i class="ph ph-qr-code" style="font-size: 20px;"></i> Scan Token (Camera)</button><div style="text-align: center; color: var(--text-secondary); margin-bottom: 15px; font-size: 12px;">— OR ENTER MANUALLY —</div><div class="form-group"><input type="text" id="lab-search-token" placeholder="e.g. SAD-001" style="text-transform: uppercase;"></div><button class="btn-primary" onclick="searchToken()"><i class="ph ph-magnifying-glass"></i> Search</button></div>
+            <div id="lab-result-area" style="display: none;"><div class="card" id="lab-request-details"></div><div class="card"><h2>Process Report</h2><div class="form-group"><label>Billing Date (DD/MM/YYYY)</label><input type="date" id="lab-billing-date" required></div><div class="form-group"><label>Report Name</label><input type="text" id="lab-report-name" placeholder="e.g. COMPLETE BLOOD COUNT" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()"></div><div class="form-group"><label>Total Report Amount (₹)</label><input type="number" id="lab-original-amount" placeholder="0.00" oninput="calculateDiscount()"></div><div class="form-group"><label>Discount Amount (₹)</label><input type="text" id="lab-discount-amount" value="0.00" readonly style="color: var(--warning); font-weight: bold;"></div><div class="form-group"><label>Batrisi Sahay Amount (₹)</label><input type="text" id="lab-sahay-amount" value="0.00" readonly style="color: var(--success); font-weight: bold;"></div><div class="form-group"><label>Upload Invoice (Photo/Image)</label><input type="file" id="lab-invoice-file" accept="image/png, image/jpeg, image/jpg" capture="environment" onchange="handleInvoiceUpload(event)" style="background: transparent; padding: 0; border: none;"><img id="invoice-preview" class="img-preview" src=""></div><div class="detail-row" style="font-size: 18px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 15px;"><span class="detail-label" style="color: var(--text-primary);">Final Payable Amount:</span><span id="lab-final-amount" style="font-weight: 800; color: var(--accent-color);">₹ 0.00</span></div><button class="btn-success" style="margin-top: 20px;" onclick="closeLabReport()">Complete & Close Report</button></div></div>
             <div class="card" id="lab-monthly-totals" style="margin-top: 15px; border-color: var(--accent-color);"><h3 style="margin-bottom: 12px; font-size: 16px; color: var(--text-primary);">Current Month Summary</h3><div class="grid-2"><div class="action-card" style="background: rgba(0, 149, 246, 0.1); border-color: var(--accent-color); padding: 15px 10px;"><span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">Total W/O Discount</span><span id="lab-total-original" style="font-size: 18px; font-weight: 800; color: var(--accent-color);">₹ 0.00</span></div><div class="action-card" style="background: rgba(0, 186, 124, 0.1); border-color: var(--success); padding: 15px 10px;"><span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">Total With Discount</span><span id="lab-total-final" style="font-size: 18px; font-weight: 800; color: var(--success);">₹ 0.00</span></div></div></div>
             <div id="lab-overview-section" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 20px;"><h2>Request Overview</h2><div class="table-container"> <table> <thead> <tr><th>Token</th><th>Status</th><th>Patient Details</th><th>Medical Details</th><th>Amount (Paid)</th></tr> </thead> <tbody id="lab-request-list-body"></tbody> </table> </div></div>
             <div style="text-align: center; padding: 30px 20px 20px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin-top: 30px; border-top: 1px solid var(--border-color);"><b style="color: var(--text-primary); font-size: 12px;">Shree Batrishi Jain Co-Op Education Society Limited</b><br>Sheth Shri Hiralal Hargovandas Batrishi Hall<br>Near R.T.O Circle, Subhashbridge, Collector Kacheri<br>Ahmedabad - 380027<br><br>Phone: 079-27557668<br>Mobile: +91 95864 23232<br>Email: <a href="mailto:32cedusociety@gmail.com" style="color: var(--accent-color); text-decoration: none;">32cedusociety@gmail.com</a><br><br>GSTIN: 24AAATS6070J1ZE<br>Reg No: GH/230<br>Reg Date: 10/10/1944</div>
@@ -573,8 +384,12 @@
         <div class="bottom-nav"><div class="nav-item active" onclick="resetLabSearch()"><i class="ph-fill ph-magnifying-glass"></i><span>Search</span></div><div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div></div>
     </div>
 
-    <!-- Modal: QR Scanner -->
+    <!-- Extra modals: decline, view photo, change password, QR scanner -->
+    <div id="modal-decline" class="modal"><div class="modal-content"><h2>Decline Request</h2><div class="form-group"><label>Reason for rejection</label><textarea id="decline-reason" rows="3" placeholder="Enter reason..."></textarea></div><input type="hidden" id="decline-request-id"><div class="btn-group"><button class="btn-outline" onclick="closeModal('modal-decline')">Cancel</button><button class="btn-danger" onclick="confirmDecline()">Confirm Decline</button></div></div></div>
+    <div id="modal-view-photo" class="modal"><div class="modal-content" style="background: transparent; align-items: center; padding-bottom: 20px;"><img id="full-id-photo" src="" style="max-width: 100%; max-height: 70vh; border-radius: 12px; object-fit: contain;"><button class="btn-outline" style="margin-top: 20px; background: rgba(0,0,0,0.5); color: white; border: none;" onclick="closeModal('modal-view-photo')"><i class="ph ph-x"></i> Close</button></div></div>
+    <div id="modal-change-password-committee" class="modal"><div class="modal-content"><h2 style="text-align: center;">Change Password</h2><form id="form-change-password"><div class="form-group"><label>Old Password</label><input type="password" id="cp-old" required></div><div class="form-group"><label>New Password</label><input type="password" id="cp-new" required></div><div class="form-group"><label>Confirm New Password</label><input type="password" id="cp-confirm" required></div><button type="submit" class="btn-success" style="margin-top: 15px;">Update Password</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-change-password-committee')">Cancel</button></div></div>
     <div id="modal-qr-scanner" class="modal"><div class="modal-content" style="align-items: center;"><h2>Scan Token QR</h2><div id="reader" style="width: 100%; max-width: 400px; margin-bottom: 20px;"></div><button class="btn-danger" onclick="stopScanner()">Cancel</button></div></div>
+
 </div>
 
 <script>
@@ -628,7 +443,6 @@
                         fcmToken: token,
                         lastActive: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
-                    // Subscribe to topic 'all_members' for broadcast messages
                     await messaging.subscribeToTopic('all_members');
                     console.log("Subscribed to all_members topic");
                 }
@@ -650,7 +464,7 @@
     async function sendNotificationToAll(title, body) {
         try {
             await db.collection('notifications').add({
-                user: 'all',        // Important for filtering
+                user: 'all',
                 title: title,
                 message: body,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -659,10 +473,10 @@
             triggerPush('all_members', title, body, true);
         } catch (error) {
             console.error("Error sending notification:", error);
+            showToast("Failed to send notification. Check quota or index.", "error");
         }
     }
 
-    // Function to send broadcast from admin modal
     function sendBroadcastNotification() {
         const title = document.getElementById('notif-title').value.trim();
         const message = document.getElementById('notif-message').value.trim();
@@ -683,13 +497,21 @@
 
     function setupNotificationsListener(userId) {
         if (notificationsUnsubscribe) notificationsUnsubscribe();
+        // Reduced limit to 20 to save reads
         const q = db.collection('notifications')
             .where('user', 'in', [userId, 'all', 'program_update'])
             .orderBy('timestamp', 'desc')
-            .limit(50);
+            .limit(20);
         notificationsUnsubscribe = q.onSnapshot(snapshot => {
             notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             updateNotifUI();
+        }, error => {
+            console.error("Notifications listener error:", error);
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                showToast("Missing Firestore index. Please create index on notifications collection (user, timestamp).", "error");
+            } else {
+                showToast("Error loading notifications. Check console.", "error");
+            }
         });
     }
 
@@ -749,13 +571,13 @@
             user: targetUserId,
             timestamp: Date.now()
         };
-        db.collection('notifications').add(newNotif);
+        db.collection('notifications').add(newNotif).catch(e => console.error("Add notif failed:", e));
     }
 
     function markAsRead(index) {
         const notif = notifications[index];
         if (notif && notif.id) {
-            db.collection('notifications').doc(notif.id).update({ read: true });
+            db.collection('notifications').doc(notif.id).update({ read: true }).catch(e => console.error("Mark read failed:", e));
         }
     }
 
@@ -765,7 +587,7 @@
         }
     });
 
-    // ================= DATA CONFIGURATION =================
+    // ================= DATA CONFIGURATION (unchanged) =================
     const DEFAULT_COMMITTEE = [
         {name: "HITENDRABHAI JASHWANTLAL SHAH", mobile: "9825698298"},
         {name: "GUNWANTLAL CHANDULAL SHAH", mobile: "9825441916"},
@@ -815,7 +637,7 @@
             <h2>Committee Members Introduction</h2>
             <div class="table-container" style="margin-top: 10px; margin-bottom: 10px;">
                 <table style="width: 100%; min-width: 600px; font-family: 'Inter', sans-serif;">
-                    <thead> <tr><th>No</th><th>Name</th><th>Designation</th><th>Native</th><th>Mobile Number</th></tr> </thead>
+                    <thead><tr><th>No</th><th>Name</th><th>Designation</th><th>Native</th><th>Mobile Number</th></tr></thead>
                     <tbody>
                         <tr><td>1</td><td>HITENDRABHAI JASHWANTLAL SHAH</td><td>PRESIDENT</td><td>BAHIYAL</td><td>9825698298</td></tr>
                         <tr><td>2</td><td>GUNWANTLAL CHANDULAL SHAH</td><td>VICE PRESIDENT</td><td>VALAD</td><td>9825441916</td></tr>
@@ -856,7 +678,7 @@
     let uploadedInvoiceBase64 = null;
     let html5QrcodeScanner = null;
     let currentVideoUploadTask = null;
-    let requestsUnsubscribe = null;   // For requests listener
+    let requestsUnsubscribe = null;
 
     // ================= LOAD STATIC DATA (CACHED) =================
     async function loadStaticData() {
@@ -870,7 +692,6 @@
             if (committeeDoc.exists) {
                 let fetchedList = committeeDoc.data().list || [];
                 if (fetchedList.length > 0 && isNaN(fetchedList[0].username)) {
-                    // Convert old format to new
                     committeeList = DEFAULT_COMMITTEE.map(c => {
                         let existing = fetchedList.find(old => old.name === c.name);
                         return {
@@ -893,7 +714,6 @@
     function refreshSystemData() {
         loadStaticData().then(() => {
             showToast("System data refreshed");
-            // Re-render if admin screen active
             if (document.getElementById('screen-admin').classList.contains('active')) {
                 if (typeof renderLabList === 'function') renderLabList();
                 if (typeof renderCommitteeList === 'function') renderCommitteeList();
@@ -925,6 +745,9 @@
                 if (document.getElementById('nav-committee-inbox')?.classList.contains('active')) renderCommitteeRequests();
             }
             else if (activeScreen === 'screen-lab') renderLabRequests();
+        }, error => {
+            console.error("Requests listener error:", error);
+            showToast("Error loading requests. Check Firestore.", "error");
         });
     }
 
@@ -949,33 +772,43 @@
         }
     }
 
-    // Batrisi Updates Real-time
+    // Batrisi Updates – removed real-time listener; fetch on demand to save reads
     let batrisiUpdates = [];
-    db.collection('batrisi_updates').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-        batrisiUpdates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const memberScreen = document.getElementById('screen-member');
-        if (memberScreen && memberScreen.classList.contains('active')) {
-            const navProg = document.getElementById('nav-member-programs');
-            if (navProg && navProg.classList.contains('active')) renderMemberPrograms();
+    async function loadBatrisiUpdates() {
+        try {
+            const snapshot = await db.collection('batrisi_updates').orderBy('createdAt', 'desc').get();
+            batrisiUpdates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Re-render if any program screen is active
+            const memberScreen = document.getElementById('screen-member');
+            if (memberScreen && memberScreen.classList.contains('active')) {
+                const navProg = document.getElementById('nav-member-programs');
+                if (navProg && navProg.classList.contains('active')) renderMemberPrograms();
+            }
+            const committeeScreen = document.getElementById('screen-committee');
+            if (committeeScreen && committeeScreen.classList.contains('active')) {
+                const navProgCom = document.getElementById('nav-committee-programs');
+                if (navProgCom && navProgCom.classList.contains('active')) renderCommitteePrograms();
+            }
+            const adminModal = document.getElementById('modal-batrisi-programs');
+            if (adminModal && adminModal.classList.contains('active')) {
+                if (typeof renderAdminProgramsList === 'function') renderAdminProgramsList();
+            }
+        } catch (error) {
+            console.error("Error loading batrisi updates:", error);
         }
-        const committeeScreen = document.getElementById('screen-committee');
-        if (committeeScreen && committeeScreen.classList.contains('active')) {
-            const navProgCom = document.getElementById('nav-committee-programs');
-            if (navProgCom && navProgCom.classList.contains('active')) renderCommitteePrograms();
-        }
-        const adminModal = document.getElementById('modal-batrisi-programs');
-        if (adminModal && adminModal.classList.contains('active')) {
-            if (typeof renderAdminProgramsList === 'function') renderAdminProgramsList();
-        }
-    });
+    }
 
-    // Member database – fetch once when needed
+    // Member database – fetch once
     async function loadMemberDatabase() {
-        const snapshot = await db.collection('members').get();
-        memberDatabase = {};
-        snapshot.forEach(doc => {
-            memberDatabase[doc.id] = doc.data();
-        });
+        try {
+            const snapshot = await db.collection('members').get();
+            memberDatabase = {};
+            snapshot.forEach(doc => {
+                memberDatabase[doc.id] = doc.data();
+            });
+        } catch (error) {
+            console.error("Error loading members:", error);
+        }
     }
 
     // ================= UTILITIES =================
@@ -2268,7 +2101,7 @@
         if (labTotalFinalEl) labTotalFinalEl.innerText = `₹ ${totalFinal.toFixed(2)}`;
         tbody.innerHTML = '';
         if(myReqs.length === 0) {
-            tbody.innerHTML = ' <tr><td colspan="5" style="text-align:center; color:var(--text-secondary);">No requests found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-secondary);">No requests found.</td></tr>';
         } else {
             myReqs.forEach(req => {
                 let statusBadge = `<span class="badge ${req.status.toLowerCase()}">${req.status}</span>`;
@@ -2588,6 +2421,7 @@
     (async function init() {
         await loadStaticData();
         await loadMemberDatabase();
+        await loadBatrisiUpdates(); // fetch programs once
         if (currentUser) {
             setupRequestsListener(currentUser.role);
             setupNotificationsListener(currentUser.id);
