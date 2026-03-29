@@ -11,9 +11,15 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Fetch handler – service worker ko active rakhne ke liye
+// ✅ Push event listener – ensures service worker wakes up
+self.addEventListener('push', function(event) {
+  console.log('[sw] Push event received');
+  // Let the FCM SDK handle it
+  event.waitUntil(messaging.onBackgroundMessage(event));
+});
+
+// ✅ Fetch event – keeps service worker alive
 self.addEventListener('fetch', (event) => {
-  // Optional: cache or just pass through
   event.respondWith(fetch(event.request));
 });
 
@@ -21,5 +27,5 @@ messaging.onBackgroundMessage((payload) => {
   console.log('[sw] Background message:', payload);
   const title = payload.notification?.title || payload.data?.title || 'Batrisi Medical Sahay';
   const body = payload.notification?.body || payload.data?.body || '';
-  self.registration.showNotification(title, { body });
+  return self.registration.showNotification(title, { body });
 });
