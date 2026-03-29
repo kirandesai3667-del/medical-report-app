@@ -11,21 +11,31 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// ✅ Push event listener – ensures service worker wakes up
-self.addEventListener('push', function(event) {
-  console.log('[sw] Push event received');
-  // Let the FCM SDK handle it
-  event.waitUntil(messaging.onBackgroundMessage(event));
-});
-
-// ✅ Fetch event – keeps service worker alive
-self.addEventListener('fetch', (event) => {
-  event.respondWith(fetch(event.request));
-});
-
+// ✅ Handle background messages directly
 messaging.onBackgroundMessage((payload) => {
-  console.log('[sw] Background message:', payload);
+  console.log('[sw] Background message received:', payload);
+  
   const title = payload.notification?.title || payload.data?.title || 'Batrisi Medical Sahay';
   const body = payload.notification?.body || payload.data?.body || '';
-  return self.registration.showNotification(title, { body });
+  const icon = 'https://kirandesai3667-del.github.io/medical-report-app/icon-192.png';
+  
+  console.log('[sw] Showing notification:', title, body);
+  
+  return self.registration.showNotification(title, {
+    body: body,
+    icon: icon,
+    badge: icon,
+    vibrate: [200, 100, 200],
+    data: {
+      url: 'https://kirandesai3667-del.github.io/medical-report-app/'
+    }
+  });
+});
+
+// ✅ Optional: Handle notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.openWindow('https://kirandesai3667-del.github.io/medical-report-app/')
+  );
 });
