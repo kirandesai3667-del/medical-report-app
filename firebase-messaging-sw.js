@@ -11,7 +11,7 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// 🔔 Background notification handler (optimized)
+// 🔔 Background notification handler (optimized) 
 messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title || payload.data?.title || 'Batrisi Medical Sahay';
   const body = payload.notification?.body || payload.data?.body || '';
