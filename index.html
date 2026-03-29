@@ -425,32 +425,36 @@
     }
 
     async function requestPushNotificationPermission() {
-        if (!messaging || !currentUser || !currentUser.id) return;
-        try {
-            const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                const token = await messaging.getToken({ 
-                    vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
-                    serviceWorkerRegistration: registration 
+    if (!messaging || !currentUser || !currentUser.id) return;
+    try {
+        const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            const token = await messaging.getToken({ 
+                vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
+                serviceWorkerRegistration: registration 
+            });
+            if (token) {
+                console.log("Token generated:", token);
+                await db.collection('users').doc(currentUser.id).set({
+                    userId: currentUser.id,
+                    name: currentUser.name,
+                    role: currentUser.role,
+                    fcmToken: token,
+                    lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                // ✅ FIX: Subscribe to topic via Apps Script (since subscribeToTopic is not available in compat SDK)
+                await fetch(`${SCRIPT_URL}?subscribeTopic=true&token=${encodeURIComponent(token)}&topic=all_members`, {
+                    method: 'POST',
+                    mode: 'no-cors'
                 });
-                if (token) {
-                    console.log("Token generated:", token);
-                    await db.collection('users').doc(currentUser.id).set({
-                        userId: currentUser.id,
-                        name: currentUser.name,
-                        role: currentUser.role,
-                        fcmToken: token,
-                        lastActive: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                    await messaging.subscribeToTopic('all_members');
-                    console.log("Subscribed to all_members topic");
-                }
+                console.log("Topic subscription request sent to Apps Script");
             }
-        } catch (error) {
-            console.error('Notification Error:', error);
         }
-    }    
+    } catch (error) {
+        console.error('Notification Error:', error);
+    }
+}
 
     async function triggerPush(target, title, body, isTopic = false) {
         if (!target) return;
@@ -496,24 +500,24 @@
     let notifications = [];
 
     function setupNotificationsListener(userId) {
-        if (notificationsUnsubscribe) notificationsUnsubscribe();
-        // Reduced limit to 20 to save reads
-        const q = db.collection('notifications')
-            .where('user', 'in', [userId, 'all', 'program_update'])
-            .orderBy('timestamp', 'desc')
-            .limit(20);
-        notificationsUnsubscribe = q.onSnapshot(snapshot => {
-            notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            updateNotifUI();
-        }, error => {
-            console.error("Notifications listener error:", error);
-            if (error.code === 'failed-precondition' && error.message.includes('index')) {
-                showToast("Missing Firestore index. Please create index on notifications collection (user, timestamp).", "error");
-            } else {
-                showToast("Error loading notifications. Check console.", "error");
-            }
-        });
-    }
+    if (notificationsUnsubscribe) notificationsUnsubscribe();
+    // Reduced limit to 20 to save reads
+    const q = db.collection('notifications')
+        .where('user', 'in', [userId, 'all', 'program_update'])
+        .orderBy('timestamp', 'desc')
+        .limit(20);
+    notificationsUnsubscribe = q.onSnapshot(snapshot => {
+        notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        updateNotifUI();
+    }, error => {
+        console.error("Notifications listener error:", error);
+        if (error.code === 'failed-precondition' && error.message.includes('index')) {
+            showToast("Missing Firestore index. Please create index on notifications collection (user, timestamp).", "error");
+        } else {
+            showToast("Error loading notifications. Check console.", "error");
+        }
+    });
+}
 
     function updateNotifUI() {
         if (!currentUser) return;
