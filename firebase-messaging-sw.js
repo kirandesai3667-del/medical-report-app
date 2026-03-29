@@ -11,27 +11,28 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// 🔔 Background notification handler (optimized)
+// 🔔 Background notification handler (FINAL OPTIMIZED)
 messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title || payload.data?.title || 'Batrisi Medical Sahay';
   const body = payload.notification?.body || payload.data?.body || '';
 
-  const icon = payload.notification?.icon || payload.data?.icon || 
-    'https://kirandesai3667-del.github.io/medical-report-app/icon-192.png';
+  const icon = payload.notification?.icon || payload.data?.icon || '/icon-192.png';
 
   return self.registration.showNotification(title, {
-    body: body,
-    icon: icon,
+    body,
+    icon,
     badge: icon,
     vibrate: [200, 100, 200],
+    tag: payload.data?.tag || "default", // ✅ duplicate control
+    renotify: true, // ✅ same tag pe update karega
     data: {
-      url: payload.data?.url || 'https://kirandesai3667-del.github.io/medical-report-app/',
+      url: payload.data?.url || '/',
       type: payload.data?.type || "general"
     }
   });
 });
 
-// 🔥 Notification click handler (BEST PRACTICE FIXED)
+// 🔥 Notification click handler (ADVANCED FIXED)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
@@ -41,15 +42,22 @@ self.addEventListener('notificationclick', (event) => {
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
 
-        // ✅ If app already open → focus same tab
+        // ✅ If already open → focus
         for (const client of clientList) {
           if (client.url.includes(url) && 'focus' in client) {
             return client.focus();
           }
         }
 
-        // ✅ Else open new tab
+        // ✅ Else open new
         return clients.openWindow(url);
       })
   );
+});
+
+// 🔥 OPTIONAL (BEST UX) → auto close old notifications
+self.addEventListener('push', (event) => {
+  self.registration.getNotifications().then(notifications => {
+    notifications.forEach(n => n.close());
+  });
 });
