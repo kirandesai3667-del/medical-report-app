@@ -11,31 +11,45 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// ✅ Handle background messages directly
+// 🔔 Background notification handler (optimized)
 messaging.onBackgroundMessage((payload) => {
-  console.log('[sw] Background message received:', payload);
-  
   const title = payload.notification?.title || payload.data?.title || 'Batrisi Medical Sahay';
   const body = payload.notification?.body || payload.data?.body || '';
-  const icon = 'https://kirandesai3667-del.github.io/medical-report-app/icon-192.png';
-  
-  console.log('[sw] Showing notification:', title, body);
-  
+
+  const icon = payload.notification?.icon || payload.data?.icon || 
+    'https://kirandesai3667-del.github.io/medical-report-app/icon-192.png';
+
   return self.registration.showNotification(title, {
     body: body,
     icon: icon,
     badge: icon,
     vibrate: [200, 100, 200],
     data: {
-      url: 'https://kirandesai3667-del.github.io/medical-report-app/'
+      url: payload.data?.url || 'https://kirandesai3667-del.github.io/medical-report-app/',
+      type: payload.data?.type || "general"
     }
   });
 });
 
-// ✅ Optional: Handle notification click
+// 🔥 Notification click handler (BEST PRACTICE FIXED)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  const url = event.notification.data?.url || '/';
+
   event.waitUntil(
-    clients.openWindow('https://kirandesai3667-del.github.io/medical-report-app/')
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+
+        // ✅ If app already open → focus same tab
+        for (const client of clientList) {
+          if (client.url.includes(url) && 'focus' in client) {
+            return client.focus();
+          }
+        }
+
+        // ✅ Else open new tab
+        return clients.openWindow(url);
+      })
   );
 });
