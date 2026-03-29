@@ -9,11 +9,6 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -22,7 +17,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
     <style>
-        /* [Same as before – keep all your styles] */
         :root {
             --bg-base: #000000;
             --bg-surface: #0a0a0a;
@@ -149,7 +143,7 @@
 
     <div id="toast" class="toast"><i id="toast-icon" class="ph-fill ph-check-circle" style="color: var(--success); font-size: 20px;"></i> <span id="toast-msg">Success</span></div>
 
-    <!-- LOGIN SCREEN (unchanged) -->
+    <!-- LOGIN SCREEN -->
     <div id="screen-login" class="screen active" style="padding: 20px; overflow-y: auto; display: flex; flex-direction: column;">
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -182,7 +176,7 @@
                         <input type="checkbox" id="remember-me">
                         <label for="remember-me">Remember Login</label>
                     </div>
-                    <button type="submit" class="btn-gradient">Log In</button>
+                    <button type="submit" class="btn-gradient" id="login-btn">Log In</button>
                 </form>
             </div>
         </div>
@@ -208,13 +202,17 @@
                 <div class="header-subtitle">Welcome, <span id="admin-name-display">Admin</span></div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
+                <i class="ph ph-arrows-clockwise" style="font-size: 24px; cursor: pointer;" onclick="refreshSystemData()"></i>
                 <div class="notification-container">
                     <div class="bell" onclick="toggleNotifications()">
                         <i class="ph ph-bell"></i>
                         <span id="notifCount-admin" class="notif-count">0</span>
                     </div>
                     <div id="notifDropdown-admin" class="notif-dropdown">
-                        <h4>Notifications</h4>
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px;">
+                            <span style="font-size:11px; color:var(--text-secondary); cursor:pointer; font-weight:600;" onclick="clearAdminNotifications()">Clear Announcements 🧹</span>
+                            <span style="font-size:11px; color:var(--accent-color); cursor:pointer; font-weight:600;" onclick="markAllRead()">Mark all as read</span>
+                        </div>
                         <ul id="notifList-admin"></ul>
                     </div>
                 </div>
@@ -223,7 +221,7 @@
         </div>
         <div class="content-area">
             <div class="grid-2">
-                <div class="action-card" onclick="openModal('modal-upload-excel')">
+                <div class="action-card" onclick="openModal('modal-upload-excel'); lazyLoadExportLibs();">
                     <i class="ph ph-file-xls"></i><span>Upload Excel</span>
                 </div>
                 <div class="action-card" onclick="openManageLabs()">
@@ -289,7 +287,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px; margin-bottom: 10px;">
                 <h2 style="margin: 0;">Request Overview</h2>
                 <select id="admin-filter-status" style="width: auto; padding: 8px 12px; border-radius: 8px; font-size: 13px;" onchange="renderAdminRequests()">
@@ -306,7 +304,7 @@
                 <button class="btn-small btn-outline" style="border-color: var(--danger); color: var(--danger);" onclick="executeNewExport('pdf')"><i class="ph ph-file-pdf"></i> Export PDF</button>
                 <button class="btn-small btn-outline" style="border-color: var(--accent-color); color: var(--accent-color);" onclick="executeNewExport('csv')"><i class="ph ph-file-csv"></i> Export CSV</button>
             </div>
-            
+
             <div class="table-container" id="admin-table-container">
                 <table id="admin-request-table">
                     <thead>
@@ -328,21 +326,33 @@
         </div>
     </div>
 
-    <!-- MODALS (keep as before, but add the new send-notification modal) -->
+    <!-- MODALS -->
     <div id="modal-upload-excel" class="modal"><div class="modal-content"><h2 style="text-align: center;">Upload Member Database</h2><p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">Upload Excel (.xlsx/.csv) containing Member Details</p><div style="background: rgba(240, 148, 51, 0.1); border: 1px solid rgba(240, 148, 51, 0.3); padding: 12px; border-radius: 12px; margin-bottom: 15px; font-size: 12px; color: var(--warning);"><b>Required Columns:</b> MemberNumber, MemberName, Address, NativeName, MobileNumber</div><div class="dropzone" id="excel-dropzone" onclick="document.getElementById('excel-file').click()"><i class="ph ph-file-arrow-up"></i><div id="excel-file-name">Tap to browse or drop .csv / .xlsx file here</div><input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleExcelUpload(event)"></div><button class="btn-outline" style="margin-top: 20px;" onclick="closeModal('modal-upload-excel')">Cancel</button></div></div>
     <div id="modal-manage-labs" class="modal"><div class="modal-content"><h2 style="text-align: center;">Manage Laboratories</h2><div id="admin-lab-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div><h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add New Lab</h3><form id="form-add-lab"><input type="text" id="new-lab-name" placeholder="Lab Name (e.g. K.D Lab)" required><input type="text" id="new-lab-prefix" placeholder="Token Prefix (e.g. KD)" required><input type="text" id="new-lab-id" placeholder="Login ID" required><input type="text" id="new-lab-pass" placeholder="Password" required><button type="submit" class="btn-success">Save Laboratory</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-manage-labs')">Close</button></div></div>
     <div id="modal-manage-committee" class="modal"><div class="modal-content"><h2 style="text-align: center;">Manage Committee</h2><div id="admin-committee-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div><h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add Member</h3><form id="form-add-committee"><input type="text" id="new-com-name" placeholder="Full Name" required><input type="text" id="new-com-id" placeholder="Mobile Number" required><input type="text" id="new-com-pass" placeholder="Password" required><button type="submit" class="btn-success">Save Committee Member</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-manage-committee')">Close</button></div></div>
     <div id="modal-add-member" class="modal"><div class="modal-content"><h2 style="text-align: center;">Add Member Manually</h2><form id="form-add-member"><input type="text" id="manual-mem-no" placeholder="Member Number (e.g. M123)" required style="text-transform: uppercase;"><input type="text" id="manual-mem-name" placeholder="Member Name" required><input type="text" id="manual-mem-address" placeholder="Address" required><input type="text" id="manual-mem-native" placeholder="Native Name" required><input type="number" id="manual-mem-mobile" placeholder="Mobile Number" required><button type="submit" class="btn-success">Save Member</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-add-member')">Cancel</button></div></div>
     <div id="modal-export-file" class="modal"><div class="modal-content"><h2 style="text-align: center;" id="export-modal-title">Export CSV Log</h2><div class="form-group"><label>Enter File Name</label><input type="text" id="export-file-name" placeholder="Medical_Report_March_2026"></div><input type="hidden" id="export-type-flag"><div class="btn-group" style="width: 100%;"><button class="btn-outline" onclick="closeModal('modal-export-file')">Cancel</button><button class="btn-success" onclick="executeExport()">Download</button></div></div></div>
     <div id="modal-delete-confirm" class="modal"><div class="modal-content" style="align-items: center;"><i class="ph-fill ph-warning-circle" style="font-size: 50px; color: var(--danger); margin-bottom: 15px;"></i><h2 style="margin-bottom: 5px;">Delete Report?</h2><p style="text-align: center; color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">Are you sure you want to delete this report? This action cannot be undone.</p><input type="hidden" id="delete-req-id"><div class="btn-group" style="width: 100%;"><button class="btn-outline" onclick="closeModal('modal-delete-confirm')">Cancel</button><button class="btn-danger" onclick="executeDelete()">Confirm Delete</button></div></div></div>
-    <div id="modal-batrisi-programs" class="modal"><div class="modal-content"><h2 style="text-align: center;">Manage Programs</h2><div id="admin-program-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div><h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add New Program</h3><form id="form-add-program"><div class="form-group"><label>Program Title *</label><input type="text" id="prog-title" placeholder="e.g. Annual Medical Camp" required></div><div class="form-group"><label>Message / Description *</label><textarea id="prog-msg" rows="3" placeholder="Enter program details..." required></textarea></div><div class="form-group"><label>Image (Upload or Paste URL)</label><input type="file" id="prog-img-file" accept="image/png, image/jpeg, image/jpg" style="background: transparent; padding: 0; border: none; margin-bottom: 10px;"><input type="url" id="prog-img" placeholder="OR Paste URL (https://i.ibb.co/...)"></div><div class="form-group"><label>Video (Upload or Paste URL)</label><input type="file" id="prog-vid-file" accept="video/mp4,video/x-m4v,video/*" style="background: transparent; padding: 0; border: none; margin-bottom: 5px;"><div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;">Max file size: 100MB</div><input type="url" id="prog-vid-url" placeholder="OR Paste Video URL (YouTube, Insta, FB, MP4)"><div id="video-upload-progress-container" style="display:none; margin-top:10px;"><div style="font-size: 12px; color: var(--accent-color); margin-bottom: 5px;" id="video-upload-text">Uploading Video: 0%</div><div style="width: 100%; background: var(--border-color); height: 6px; border-radius: 3px; overflow: hidden;"><div id="video-upload-bar" style="width: 0%; background: var(--success); height: 100%;"></div></div><button type="button" class="btn-danger btn-small" id="btn-cancel-upload" style="margin-top: 10px; width: auto;"><i class="ph ph-x"></i> Cancel Upload</button></div></div><button type="submit" class="btn-success" style="margin-top: 15px;">Post Update</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-batrisi-programs')">Close</button></div></div>
+    <div id="modal-batrisi-programs" class="modal"><div class="modal-content"><h2 style="text-align: center;">Manage Programs</h2><div id="admin-program-list" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;"></div><h3 style="border-top: 1px solid var(--border-color); padding-top: 15px;">Add New Program</h3><form id="form-add-program"><div class="form-group"><label>Program Title *</label><input type="text" id="prog-title" placeholder="e.g. Annual Medical Camp" required></div><div class="form-group"><label>Message / Description *</label><textarea id="prog-msg" rows="3" placeholder="Enter program details..." required></textarea></div><div class="form-group"><label>Image (Upload or Paste URL)</label><input type="file" id="prog-img-file" accept="image/png, image/jpeg, image/jpg" style="background: transparent; padding: 0; border: none; margin-bottom: 10px;"><input type="url" id="prog-img" placeholder="OR Paste URL (https://i.ibb.co/...)"></div><div class="form-group"><label>Video (Upload or Paste URL)</label><input type="file" id="prog-vid-file" accept="video/mp4,video/x-m4v,video/*" style="background: transparent; padding: 0; border: none; margin-bottom: 5px;"><div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;">Max file size: 10MB</div><input type="url" id="prog-vid-url" placeholder="OR Paste Video URL (YouTube, Insta, FB, MP4)"><div id="video-upload-progress-container" style="display:none; margin-top:10px;"><div style="font-size: 12px; color: var(--accent-color); margin-bottom: 5px;" id="video-upload-text">Uploading Video: 0%</div><div style="width: 100%; background: var(--border-color); height: 6px; border-radius: 3px; overflow: hidden;"><div id="video-upload-bar" style="width: 0%; background: var(--success); height: 100%;"></div></div><button type="button" class="btn-danger btn-small" id="btn-cancel-upload" style="margin-top: 10px; width: auto;"><i class="ph ph-x"></i> Cancel Upload</button></div></div><button type="submit" class="btn-success" style="margin-top: 15px;">Post Update</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-batrisi-programs')">Close</button></div></div>
     <div id="modal-send-notification" class="modal"><div class="modal-content"><h2 style="text-align: center;">Send Broadcast Notification</h2><div class="form-group"><label>Title</label><input type="text" id="notif-title" placeholder="e.g. Important Update" required></div><div class="form-group"><label>Message</label><textarea id="notif-message" rows="4" placeholder="Enter your message here..." required></textarea></div><div class="btn-group"><button class="btn-outline" onclick="closeModal('modal-send-notification')">Cancel</button><button class="btn-success" onclick="sendBroadcastNotification()">Send Now</button></div></div></div>
 
-    <!-- MEMBER DASHBOARD (unchanged) -->
+    <!-- MEMBER DASHBOARD -->
     <div id="screen-member" class="screen">
         <div class="header">
             <div><div class="header-title">Member Hub</div><div class="header-subtitle" id="member-header-name">Welcome</div></div>
-            <div class="notification-container"><div class="bell" onclick="toggleNotifications()"><i class="ph ph-bell"></i><span id="notifCount-member" class="notif-count">0</span></div><div id="notifDropdown-member" class="notif-dropdown"><h4>Notifications</h4><ul id="notifList-member"></ul></div></div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <i class="ph ph-arrows-clockwise" style="font-size: 24px; cursor: pointer;" onclick="refreshSystemData()"></i>
+                <div class="notification-container">
+                    <div class="bell" onclick="toggleNotifications()"><i class="ph ph-bell"></i><span id="notifCount-member" class="notif-count">0</span></div>
+                    <div id="notifDropdown-member" class="notif-dropdown">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px;">
+                            <h4 style="border:none; margin:0; padding:0;">Notifications</h4>
+                            <span style="font-size:11px; color:var(--accent-color); cursor:pointer; font-weight:600;" onclick="markAllRead()">Mark all as read</span>
+                        </div>
+                        <ul id="notifList-member"></ul>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="content-area" id="member-content-area"></div>
         <div class="bottom-nav">
@@ -357,7 +367,19 @@
     <div id="screen-committee" class="screen">
         <div class="header">
             <div><div class="header-title">Committee Panel</div><div class="header-subtitle" id="committee-header-name">Welcome</div></div>
-            <div class="notification-container"><div class="bell" onclick="toggleNotifications()"><i class="ph ph-bell"></i><span id="notifCount-committee" class="notif-count">0</span></div><div id="notifDropdown-committee" class="notif-dropdown"><h4>Notifications</h4><ul id="notifList-committee"></ul></div></div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <i class="ph ph-arrows-clockwise" style="font-size: 24px; cursor: pointer;" onclick="refreshSystemData()"></i>
+                <div class="notification-container">
+                    <div class="bell" onclick="toggleNotifications()"><i class="ph ph-bell"></i><span id="notifCount-committee" class="notif-count">0</span></div>
+                    <div id="notifDropdown-committee" class="notif-dropdown">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px;">
+                            <h4 style="border:none; margin:0; padding:0;">Notifications</h4>
+                            <span style="font-size:11px; color:var(--accent-color); cursor:pointer; font-weight:600;" onclick="markAllRead()">Mark all as read</span>
+                        </div>
+                        <ul id="notifList-committee"></ul>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="content-area" id="committee-request-list"></div>
         <div class="bottom-nav">
@@ -368,11 +390,23 @@
         </div>
     </div>
 
-    <!-- LAB DASHBOARD (unchanged) -->
+    <!-- LAB DASHBOARD -->
     <div id="screen-lab" class="screen">
         <div class="header">
             <div><div class="header-title">Lab Portal</div><div class="header-subtitle" id="lab-header-name">Welcome</div></div>
-            <div class="notification-container"><div class="bell" onclick="toggleNotifications()"><i class="ph ph-bell"></i><span id="notifCount-lab" class="notif-count">0</span></div><div id="notifDropdown-lab" class="notif-dropdown"><h4>Notifications</h4><ul id="notifList-lab"></ul></div></div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <i class="ph ph-arrows-clockwise" style="font-size: 24px; cursor: pointer;" onclick="refreshSystemData()"></i>
+                <div class="notification-container">
+                    <div class="bell" onclick="toggleNotifications()"><i class="ph ph-bell"></i><span id="notifCount-lab" class="notif-count">0</span></div>
+                    <div id="notifDropdown-lab" class="notif-dropdown">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px;">
+                            <h4 style="border:none; margin:0; padding:0;">Notifications</h4>
+                            <span style="font-size:11px; color:var(--accent-color); cursor:pointer; font-weight:600;" onclick="markAllRead()">Mark all as read</span>
+                        </div>
+                        <ul id="notifList-lab"></ul>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="content-area">
             <div class="card"><h2>Search Token</h2><button class="btn-outline" onclick="startScanner()" style="margin-bottom: 15px; border-color: var(--accent-color); color: var(--accent-color);"><i class="ph ph-qr-code" style="font-size: 20px;"></i> Scan Token (Camera)</button><div style="text-align: center; color: var(--text-secondary); margin-bottom: 15px; font-size: 12px;">— OR ENTER MANUALLY —</div><div class="form-group"><input type="text" id="lab-search-token" placeholder="e.g. SAD-001" style="text-transform: uppercase;"></div><button class="btn-primary" onclick="searchToken()"><i class="ph ph-magnifying-glass"></i> Search</button></div>
@@ -393,6 +427,13 @@
 </div>
 
 <script>
+    // ================= MOBILE UX FIX =================
+    document.addEventListener('focusin', (e) => {
+        if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+            setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+        }
+    });
+
     // ================= FIREBASE INITIALIZATION =================
     const firebaseConfig = {
       apiKey: "AIzaSyC97HQL03FiX8meE2iMaVAF7EJZh7r-XAM",
@@ -408,7 +449,7 @@
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.firestore();
-    
+
     // ================= FCM & PUSH LOGIC =================
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx5TuesjDfZEfkXno9pANJTOaFZ84R9N93QNyjjFkLImNwvBf7YC8SitL4pE4gxmeKf/exec';
     let messaging = null;
@@ -418,67 +459,77 @@
         messaging.onMessage((payload) => {
             console.log("Message received: ", payload);
             showToast(`${payload.notification?.title || payload.data?.title}: ${payload.notification?.body || payload.data?.body}`);
-            if (currentUser && currentUser.id) {
-                addNotification(payload.notification?.body || payload.data?.body, currentUser.id, payload.notification?.title || payload.data?.title);
-            }
         });
     }
 
     async function requestPushNotificationPermission() {
-    if (!messaging || !currentUser || !currentUser.id) return;
-    try {
-        const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            const token = await messaging.getToken({ 
-                vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
-                serviceWorkerRegistration: registration 
-            });
-            if (token) {
-                console.log("Token generated:", token);
-                await db.collection('users').doc(currentUser.id).set({
-                    userId: currentUser.id,
-                    name: currentUser.name,
-                    role: currentUser.role,
-                    fcmToken: token,
-                    lastActive: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-                // ✅ FIX: Subscribe to topic via Apps Script (since subscribeToTopic is not available in compat SDK)
-                await fetch(`${SCRIPT_URL}?subscribeTopic=true&token=${encodeURIComponent(token)}&topic=all_members`, {
-                    method: 'POST',
-                    mode: 'no-cors'
+        if (!messaging || !currentUser || !currentUser.id) return;
+        try {
+            const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                const token = await messaging.getToken({ 
+                    vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
+                    serviceWorkerRegistration: registration 
                 });
-                console.log("Topic subscription request sent to Apps Script");
+                if (token) {
+                    const userRef = db.collection('users').doc(currentUser.id);
+                    const userDoc = await userRef.get();
+                    let updateNeeded = true;
+                    if (userDoc.exists && userDoc.data().fcmToken === token) {
+                        updateNeeded = false;
+                    }
+                    if (updateNeeded) {
+                        await userRef.set({
+                            userId: currentUser.id,
+                            name: currentUser.name,
+                            role: currentUser.role,
+                            fcmToken: token,
+                            lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        await fetch(`${SCRIPT_URL}?subscribeTopic=true&token=${encodeURIComponent(token)}&topic=all_members`, {
+                            method: 'POST',
+                            mode: 'no-cors'
+                        });
+                    }
+                }
             }
+        } catch (error) {
+            console.error('Notification Error:', error);
         }
-    } catch (error) {
-        console.error('Notification Error:', error);
     }
-}
 
     async function triggerPush(target, title, body, isTopic = false) {
         if (!target) return;
         const url = `${SCRIPT_URL}?token=${encodeURIComponent(target)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&isTopic=${isTopic}`;
         try {
             await fetch(url, { method: 'POST', mode: 'no-cors', cache: 'no-cache' });
-            console.log("Push trigger sent successfully (No-CORS Mode)");
         } catch (e) { console.error("Push trigger API issue:", e); }
     }
 
-    async function sendNotificationToAll(title, body) {
+    async function sendUserNotification(userId, title, message, fcmToken = null, type = "personal", createdBy = "system") {
         try {
             await db.collection('notifications').add({
-                user: 'all',
+                user: userId,
                 title: title,
-                message: body,
+                message: message,
+                type: type,
+                createdBy: createdBy,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                read: false
+                read: false,
+                deleted: false
             });
-            triggerPush('all_members', title, body, true);
+
+            if (fcmToken) {
+                triggerPush(fcmToken, title, message);
+            }
         } catch (error) {
-            console.error("Error sending notification:", error);
-            showToast("Failed to send notification. Check quota or index.", "error");
+            console.error("Error sending user notification:", error);
         }
+    }
+
+    async function sendNotificationToAll(title, body) {
+        triggerPush('all_members', title, body, true);
     }
 
     function sendBroadcastNotification() {
@@ -492,70 +543,113 @@
         closeModal('modal-send-notification');
         document.getElementById('notif-title').value = '';
         document.getElementById('notif-message').value = '';
-        showToast("Notification sent to all members!");
+        showToast("Notification sent to all members! ✅");
+    }
+
+    async function clearAdminNotifications() {
+        if (!currentUser) return;
+        try {
+            const snapshot = await db.collection('notifications')
+                .where('user', '==', currentUser.id)
+                .get();
+
+            const batch = db.batch();
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.type === "broadcast" || data.type === "test") {
+                    batch.delete(doc.ref);
+                }
+            });
+
+            await batch.commit();
+            showToast("Announcements Cleared 🧹");
+        } catch (error) {
+            console.error("Error clearing admin notifications:", error);
+            showToast("Something went wrong ❌", "error");
+        }
     }
 
     // ================= OPTIMIZED NOTIFICATION LISTENER =================
     let notificationsUnsubscribe = null;
-    let notifications = [];
+    let notifications =[];
 
     function setupNotificationsListener(userId) {
-    if (notificationsUnsubscribe) notificationsUnsubscribe();
-    // Reduced limit to 20 to save reads
-    const q = db.collection('notifications')
-        .where('user', 'in', [userId, 'all', 'program_update'])
-        .orderBy('timestamp', 'desc')
-        .limit(20);
-    notificationsUnsubscribe = q.onSnapshot(snapshot => {
-        notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        updateNotifUI();
-    }, error => {
-        console.error("Notifications listener error:", error);
-        if (error.code === 'failed-precondition' && error.message.includes('index')) {
-            showToast("Missing Firestore index. Please create index on notifications collection (user, timestamp).", "error");
-        } else {
-            showToast("Error loading notifications. Check console.", "error");
-        }
-    });
-}
+        if (notificationsUnsubscribe) notificationsUnsubscribe();
+        const q = db.collection('notifications')
+            .where('user', '==', userId)
+            .orderBy('timestamp', 'desc')
+            .limit(20);
+            
+        let initLoad = true;
+        notificationsUnsubscribe = q.onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added' && !initLoad) {
+                    const n = change.doc.data();
+                    if (!n.read && n.user === currentUser.id) {
+                        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    }
+                }
+            });
+            initLoad = false;
+            notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            updateNotifUI();
+        }, error => {
+            console.error("Notifications listener error:", error);
+        });
+    }
 
     function updateNotifUI() {
         if (!currentUser) return;
-        const roles = ['admin', 'member', 'lab', 'committee'];
-        let myNotifs = notifications.filter(n => 
-            n.user === currentUser.id || 
-            n.user === 'all' || 
-            (n.user === 'program_update' && ['Member', 'Committee', 'Admin'].includes(currentUser.role))
-        );
-        let unreadCount = myNotifs.filter(n => !n.read && n.user !== 'all' && n.user !== 'program_update').length; 
+        const roles =['admin', 'member', 'lab', 'committee'];
+        let myNotifs = notifications.filter(n => n.user === currentUser.id && !n.deleted);
+        let unreadCount = myNotifs.filter(n => !n.read).length; 
 
         roles.forEach(role => {
             const list = document.getElementById(`notifList-${role}`);
             const count = document.getElementById(`notifCount-${role}`);
             if (!list || !count) return;
             list.innerHTML = "";
-            let displayed = 0;
-            notifications.forEach((n, globalIndex) => {
-                if ((n.user === currentUser.id || n.user === 'all' || (n.user === 'program_update' && ['Member', 'Committee', 'Admin'].includes(currentUser.role))) && displayed < 50) {
+            
+            if (myNotifs.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:gray; padding: 15px;">No notifications yet 🔕</p>';
+            } else {
+                myNotifs.forEach((n) => {
                     const li = document.createElement("li");
-                    li.className = (n.read && n.user !== 'all' && n.user !== 'program_update') ? "" : "unread";
+                    li.className = n.read ? "" : "unread";
                     let titleHtml = n.title ? `<strong style="display:block; color:var(--accent-color); margin-bottom:4px;">${n.title}</strong>` : '';
-                    li.innerHTML = `${titleHtml}${n.message}<small>${n.date || new Date(n.timestamp).toLocaleString()}</small>`;
+                    let dateObj = n.timestamp?.toDate ? n.timestamp.toDate() : new Date(n.timestamp || Date.now());
+                    li.innerHTML = `${titleHtml}${n.message}<small>${dateObj.toLocaleString()}</small>`;
                     li.onclick = () => {
-                        if (n.user !== 'all' && n.user !== 'program_update') markAsRead(globalIndex);
-                        else li.className = '';
+                        markAsRead(n.id);
+                        li.className = '';
+                        document.querySelectorAll('.notif-dropdown').forEach(d => d.style.display = 'none');
+                        
+                        // Routing behavior
+                        if (n.title && (n.title.includes("Approved") || n.title.includes("Declined") || n.title.includes("Limit"))) {
+                            if (currentUser.role === 'Member') renderMemberStatus();
+                        } else if (n.title && n.title.includes("Report")) {
+                            if (currentUser.role === 'Member') renderMemberStatus();
+                            else if (currentUser.role === 'Laboratory') resetLabSearch();
+                        } else if (n.type === "broadcast") {
+                            if (currentUser.role === 'Member') renderMemberPrograms();
+                            else if (currentUser.role === 'Committee') renderCommitteePrograms();
+                            else if (currentUser.role === 'Admin') openBatrisiProgramsAdmin();
+                        } else if (n.title && n.title.includes("Request")) {
+                             if (currentUser.role === 'Committee') renderCommitteeRequests();
+                        }
                     };
                     list.appendChild(li);
-                    displayed++;
-                }
-            });
+                });
+            }
+            
             count.innerText = unreadCount;
             count.style.display = unreadCount > 0 ? "block" : "none";
         });
     }
 
     function toggleNotifications() {
-        const roles = ['admin', 'member', 'lab', 'committee'];
+        const roles =['admin', 'member', 'lab', 'committee'];
         roles.forEach(role => {
             const dropdown = document.getElementById(`notifDropdown-${role}`);
             if (dropdown && dropdown.parentElement.contains(event.target.closest('.notification-container'))) {
@@ -566,22 +660,23 @@
         });
     }
 
-    function addNotification(message, targetUserId, title) {
-        const newNotif = {
-            message: message,
-            title: title,
-            date: new Date().toLocaleString(),
-            read: false,
-            user: targetUserId,
-            timestamp: Date.now()
-        };
-        db.collection('notifications').add(newNotif).catch(e => console.error("Add notif failed:", e));
+    function markAsRead(id) {
+        db.collection('notifications').doc(id).update({ read: true }).catch(e => console.error("Mark read failed:", e));
     }
-
-    function markAsRead(index) {
-        const notif = notifications[index];
-        if (notif && notif.id) {
-            db.collection('notifications').doc(notif.id).update({ read: true }).catch(e => console.error("Mark read failed:", e));
+    
+    async function markAllRead() {
+        const batch = db.batch();
+        let count = 0;
+        notifications.forEach(n => {
+            if (!n.read && n.user === currentUser.id) {
+                const ref = db.collection('notifications').doc(n.id);
+                batch.update(ref, { read: true });
+                count++;
+            }
+        });
+        if(count > 0) {
+            await batch.commit();
+            showToast("All marked as read ✅");
         }
     }
 
@@ -591,8 +686,42 @@
         }
     });
 
-    // ================= DATA CONFIGURATION (unchanged) =================
-    const DEFAULT_COMMITTEE = [
+    // ================= LAZY LOAD HEAVY LIBRARIES =================
+    let libsLoaded = { xlsx: false, jspdf: false, qrcode: false, scanner: false };
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            if (document.querySelector(`script[src="${src}"]`)) return resolve();
+            const s = document.createElement('script'); s.src = src;
+            s.onload = resolve; s.onerror = reject;
+            document.head.appendChild(s);
+        });
+    }
+    async function loadExportLibs() {
+        if(!libsLoaded.xlsx) {
+            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+            libsLoaded.xlsx = true;
+        }
+        if(!libsLoaded.jspdf) {
+            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js');
+            libsLoaded.jspdf = true;
+        }
+    }
+    async function loadQRLib() {
+        if(!libsLoaded.qrcode) {
+            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js');
+            libsLoaded.qrcode = true;
+        }
+    }
+    async function loadScannerLib() {
+        if(!libsLoaded.scanner) {
+            await loadScript('https://unpkg.com/html5-qrcode');
+            libsLoaded.scanner = true;
+        }
+    }
+
+    // ================= DATA CONFIGURATION =================
+    const DEFAULT_COMMITTEE =[
         {name: "HITENDRABHAI JASHWANTLAL SHAH", mobile: "9825698298"},
         {name: "GUNWANTLAL CHANDULAL SHAH", mobile: "9825441916"},
         {name: "MAYANKKUMAR RAMANLAL SHAH", mobile: "9537714100"},
@@ -670,9 +799,8 @@
 
     // ================= STATE MANAGEMENT =================
     let currentUser = JSON.parse(localStorage.getItem('sbj_user')) || null;
-    let requests = JSON.parse(localStorage.getItem('sbj_requests_backup')) || [];
+    let requests = JSON.parse(localStorage.getItem('sbj_requests_backup')) ||[];
     let tokenCounters = { "SAD": 1, "PUK": 1, "KD": 1, "APP": 1 };
-    let memberDatabase = {};
     let committeeList = DEFAULT_COMMITTEE.map(c => ({name: c.name, username: c.mobile, password: 'Bat@3232'}));
     let labList = DEFAULT_LABS;
 
@@ -682,7 +810,6 @@
     let uploadedInvoiceBase64 = null;
     let html5QrcodeScanner = null;
     let currentVideoUploadTask = null;
-    let requestsUnsubscribe = null;
 
     // ================= LOAD STATIC DATA (CACHED) =================
     async function loadStaticData() {
@@ -694,7 +821,7 @@
             ]);
             if (labsDoc.exists) labList = labsDoc.data();
             if (committeeDoc.exists) {
-                let fetchedList = committeeDoc.data().list || [];
+                let fetchedList = committeeDoc.data().list ||[];
                 if (fetchedList.length > 0 && isNaN(fetchedList[0].username)) {
                     committeeList = DEFAULT_COMMITTEE.map(c => {
                         let existing = fetchedList.find(old => old.name === c.name);
@@ -716,19 +843,21 @@
     }
 
     function refreshSystemData() {
+        showToast("Loading... ⏳");
         loadStaticData().then(() => {
-            showToast("System data refreshed");
+            showToast("System data refreshed 🔄");
             if (document.getElementById('screen-admin').classList.contains('active')) {
                 if (typeof renderLabList === 'function') renderLabList();
                 if (typeof renderCommitteeList === 'function') renderCommitteeList();
-                renderAdminRequests();
+                fetchRequests('Admin');
+            } else if (currentUser) {
+                fetchRequests(currentUser.role);
             }
         });
     }
 
-    // ================= OPTIMIZED REQUESTS LISTENER =================
-    function setupRequestsListener(role) {
-        if (requestsUnsubscribe) requestsUnsubscribe();
+    // ================= OPTIMIZED FETCH REQUESTS (.get instead of .onSnapshot) =================
+    async function fetchRequests(role) {
         let query = db.collection('requests');
         if (role === 'Member') {
             query = query.where('memberId', '==', currentUser.id);
@@ -737,9 +866,14 @@
         } else if (role === 'Laboratory') {
             query = query.where('lab', '==', currentUser.name);
         }
-        requestsUnsubscribe = query.onSnapshot(snapshot => {
+        
+        query = query.orderBy('timestamp', 'desc').limit(20);
+
+        try {
+            const snapshot = await query.get();
             requests = snapshot.docs.map(doc => doc.data());
             localStorage.setItem('sbj_requests_backup', JSON.stringify(requests));
+            
             const activeScreen = document.querySelector('.screen.active')?.id;
             if (activeScreen === 'screen-admin') renderAdminRequests();
             else if (activeScreen === 'screen-member') {
@@ -749,10 +883,9 @@
                 if (document.getElementById('nav-committee-inbox')?.classList.contains('active')) renderCommitteeRequests();
             }
             else if (activeScreen === 'screen-lab') renderLabRequests();
-        }, error => {
-            console.error("Requests listener error:", error);
-            showToast("Error loading requests. Check Firestore.", "error");
-        });
+        } catch (error) {
+            console.error("Requests fetch error:", error);
+        }
     }
 
     function buildProgramHTML(update) {
@@ -776,13 +909,12 @@
         }
     }
 
-    // Batrisi Updates – removed real-time listener; fetch on demand to save reads
-    let batrisiUpdates = [];
+    let batrisiUpdates =[];
     async function loadBatrisiUpdates() {
         try {
-            const snapshot = await db.collection('batrisi_updates').orderBy('createdAt', 'desc').get();
+            const snapshot = await db.collection('batrisi_updates').orderBy('createdAt', 'desc').limit(20).get();
             batrisiUpdates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            // Re-render if any program screen is active
+            
             const memberScreen = document.getElementById('screen-member');
             if (memberScreen && memberScreen.classList.contains('active')) {
                 const navProg = document.getElementById('nav-member-programs');
@@ -799,19 +931,6 @@
             }
         } catch (error) {
             console.error("Error loading batrisi updates:", error);
-        }
-    }
-
-    // Member database – fetch once
-    async function loadMemberDatabase() {
-        try {
-            const snapshot = await db.collection('members').get();
-            memberDatabase = {};
-            snapshot.forEach(doc => {
-                memberDatabase[doc.id] = doc.data();
-            });
-        } catch (error) {
-            console.error("Error loading members:", error);
         }
     }
 
@@ -855,7 +974,7 @@
     }
 
     function generateId() { return Math.random().toString(36).substr(2, 9); }
-    
+
     function getCurrentDateTime() { 
         const d = new Date();
         const dateStr = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
@@ -883,10 +1002,10 @@
         const d = new Date(parts[2], parts[1] - 1, parts[0]);
         return d.toLocaleDateString('en-US', { weekday: 'long' });
     }
-    
+
     function formatDateToDDMMYYYY(dateString) {
         if (!dateString) return "";
-        const [year, month, day] = dateString.split('-');
+        const[year, month, day] = dateString.split('-');
         return `${day}/${month}/${year}`;
     }
 
@@ -1026,60 +1145,74 @@
         const role = document.getElementById('login-role').value;
         const id = document.getElementById('login-id').value.trim();
         const pass = document.getElementById('login-password').value;
+        const loginBtn = document.getElementById('login-btn');
+        loginBtn.innerText = "Authenticating...";
+        loginBtn.disabled = true;
+        
+        showToast("Loading... ⏳");
 
         let authenticated = false;
         let userData = { role, id, name: id, password: pass };
 
-        if (role === 'Admin') {
-            if (id.toLowerCase() === 'kiran.desai3667@gmail.com' && pass === 'Kiran@3667') {
-                authenticated = true;
-                userData.name = "Admin Kiran";
-            }
-        } else if (role === 'Committee') {
-            const memberMatch = committeeList.find(m => m.username === id);
-            if (memberMatch && pass === memberMatch.password) {
-                authenticated = true;
-                userData.name = memberMatch.name;
-            }
-        } else if (role === 'Laboratory') {
-            const labMatch = Object.values(labList).find(l => l.loginId.toUpperCase() === id.toUpperCase());
-            if (labMatch && pass === labMatch.password) {
-                authenticated = true;
-                userData.name = labMatch.name;
-                userData.labPrefix = labMatch.prefix;
-            }
-        } else if (role === 'Member') {
-            if (pass === 'Bat@123') {
-                if (Object.keys(memberDatabase).length === 0) await loadMemberDatabase();
-                const memberInfo = memberDatabase[id.toUpperCase()];
-                if (memberInfo) {
+        try {
+            if (role === 'Admin') {
+                if (id.toLowerCase() === 'kiran.desai3667@gmail.com' && pass === 'Kiran@3667') {
                     authenticated = true;
-                    userData.name = memberInfo.name;
-                    userData.address = memberInfo.address;
-                    userData.native = memberInfo.native;
-                    userData.mobile = memberInfo.mobile;
-                } else {
-                    showToast("Member Number not found in database. Contact Admin.", "error");
-                    return; 
+                    userData.name = "Admin Kiran";
+                }
+            } else if (role === 'Committee') {
+                const memberMatch = committeeList.find(m => m.username === id);
+                if (memberMatch && pass === memberMatch.password) {
+                    authenticated = true;
+                    userData.name = memberMatch.name;
+                }
+            } else if (role === 'Laboratory') {
+                const labMatch = Object.values(labList).find(l => l.loginId.toUpperCase() === id.toUpperCase());
+                if (labMatch && pass === labMatch.password) {
+                    authenticated = true;
+                    userData.name = labMatch.name;
+                    userData.labPrefix = labMatch.prefix;
+                }
+            } else if (role === 'Member') {
+                if (pass === 'Bat@123') {
+                    const memberDoc = await db.collection('members').doc(id.toUpperCase()).get();
+                    if (memberDoc.exists) {
+                        const memberInfo = memberDoc.data();
+                        authenticated = true;
+                        userData.name = memberInfo.name;
+                        userData.address = memberInfo.address;
+                        userData.native = memberInfo.native;
+                        userData.mobile = memberInfo.mobile;
+                    } else {
+                        showToast("Member Number not found in database. Contact Admin.", "error");
+                        loginBtn.innerText = "Log In";
+                        loginBtn.disabled = false;
+                        return; 
+                    }
                 }
             }
-        }
 
-        if (authenticated) {
-            currentUser = userData;
-            currentUser.id = id; 
-            if (document.getElementById('remember-me').checked) {
-                localStorage.setItem('sbj_user', JSON.stringify(userData));
+            if (authenticated) {
+                currentUser = userData;
+                currentUser.id = id; 
+                if (document.getElementById('remember-me').checked) {
+                    localStorage.setItem('sbj_user', JSON.stringify(userData));
+                }
+                showToast(`Welcome, ${userData.name} ✅`);
+                routeUser(role);
+            } else {
+                showToast("Invalid credentials!", 'error');
             }
-            showToast(`Welcome, ${userData.name}`);
-            routeUser(role);
-        } else {
-            showToast("Invalid credentials!", 'error');
+        } catch(err) {
+            console.error(err);
+            showToast("Something went wrong ❌", "error");
+        } finally {
+            loginBtn.innerText = "Log In";
+            loginBtn.disabled = false;
         }
     });
 
     function logout() {
-        if (requestsUnsubscribe) requestsUnsubscribe();
         if (notificationsUnsubscribe) notificationsUnsubscribe();
         currentUser = null;
         localStorage.removeItem('sbj_user'); 
@@ -1088,7 +1221,7 @@
     }
 
     function routeUser(role) {
-        setupRequestsListener(role);
+        fetchRequests(role);
         setupNotificationsListener(currentUser.id);
         setTimeout(() => {
             requestPushNotificationPermission();
@@ -1136,9 +1269,11 @@
         const password = document.getElementById('new-lab-pass').value.trim();
         labList[loginId] = { name, prefix, loginId, password };
         db.collection('system').doc('labs').set(labList).then(() => {
-            showToast("Lab Added!");
+            showToast("Lab Added! ✅");
             e.target.reset();
             renderLabList();
+        }).catch(err => {
+            showToast("Something went wrong ❌", "error");
         });
     });
     function deleteLab(key) {
@@ -1174,7 +1309,7 @@
         const password = document.getElementById('new-com-pass').value.trim();
         committeeList.push({ name, username, password });
         db.collection('system').doc('committee').set({ list: committeeList }).then(() => {
-            showToast("Committee Member Added!");
+            showToast("Committee Member Added! ✅");
             e.target.reset();
             renderCommitteeList();
         });
@@ -1192,7 +1327,7 @@
         if (newPass && newPass.trim() !== "") {
             committeeList[index].password = newPass.trim();
             db.collection('system').doc('committee').set({ list: committeeList }).then(() => {
-                showToast("Password reset successfully!");
+                showToast("Password reset successfully! ✅");
                 renderCommitteeList();
             });
         }
@@ -1210,18 +1345,20 @@
         const mobile = document.getElementById('manual-mem-mobile').value.trim();
         const data = { name, address, native, mobile };
         db.collection('members').doc(memNo).set(data).then(() => {
-            showToast("Member Added Successfully!");
+            showToast("Member Added Successfully! ✅");
             e.target.reset();
             closeModal('modal-add-member');
         }).catch(err => {
-            showToast("Failed to add member", "error");
+            showToast("Something went wrong ❌", "error");
         });
     });
 
     // ================= EXCEL UPLOAD (ADMIN) =================
-    function handleExcelUpload(event) {
+    async function handleExcelUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
+        showToast("Loading... ⏳");
+        await loadExportLibs();
         document.getElementById('excel-file-name').innerText = `Processing: ${file.name}`;
         const reader = new FileReader();
         reader.onload = async function(e) {
@@ -1230,7 +1367,7 @@
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-            let membersToUpload = [];
+            let membersToUpload =[];
             json.forEach(row => {
                 const normalizedRow = {};
                 for(let key in row) {
@@ -1265,13 +1402,13 @@
                     });
                     await batch.commit();
                 }
-                showToast(`Success! Loaded ${membersToUpload.length} members.`);
+                showToast(`Success! Loaded ${membersToUpload.length} members. ✅`);
                 closeModal('modal-upload-excel');
                 document.getElementById('excel-file-name').innerText = "Tap to browse or drop .csv / .xlsx file here";
                 event.target.value = ''; 
             } catch (error) {
                 console.error("Batch upload failed: ", error);
-                showToast("Error during member upload", "error");
+                showToast("Something went wrong ❌", "error");
             }
         };
         reader.readAsArrayBuffer(file);
@@ -1320,14 +1457,10 @@
                     }
                 }
                 await docRef.delete();
-                const notifSnapshot = await db.collection('notifications').where('updateId', '==', id).get();
-                const batch = db.batch();
-                notifSnapshot.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-                showToast("Program & Media Deleted!");
+                showToast("Program & Media Deleted! ✅");
             } catch(err) {
                 console.error(err);
-                showToast("Failed to delete program completely", "error");
+                showToast("Something went wrong ❌", "error");
             }
         }
     }
@@ -1340,8 +1473,8 @@
         if(!title) return showToast("Title is required", "error");
         if(!msg) return showToast("Message is required", "error");
         const vidFile = document.getElementById('prog-vid-file').files[0];
-        if (vidFile && vidFile.size > 100 * 1024 * 1024) {
-            return showToast("Video exceeds 100MB limit!", "error");
+        if (vidFile && vidFile.size > 10 * 1024 * 1024) {
+            return showToast("Video exceeds 10MB limit!", "error");
         }
         btn.disabled = true;
         btn.innerText = "Processing...";
@@ -1375,7 +1508,7 @@
                 finalVidUrl = await videoRef.getDownloadURL();
             }
             const timestamp = Date.now();
-            const newDocRef = await db.collection('batrisi_updates').add({
+            await db.collection('batrisi_updates').add({
                 title: title,
                 message: msg,
                 imageUrl: finalImgUrl || null,
@@ -1383,20 +1516,11 @@
                 imageStoragePath: imageStoragePath,
                 videoStoragePath: videoStoragePath,
                 createdAt: timestamp,
-                target: ["Member", "Committee", "Admin"] 
+                target:["Member", "Committee", "Admin"] 
             });
-            await db.collection('notifications').add({
-                updateId: newDocRef.id,
-                title: "New Program: " + title,
-                message: msg,
-                createdAt: timestamp,
-                timestamp: timestamp,
-                date: new Date().toLocaleString(),
-                read: false,
-                user: 'program_update'
-            });
+            
             sendNotificationToAll(title, msg);
-            showToast("Program Posted Successfully!");
+            showToast("Program Posted Successfully! ✅");
             formTarget.reset();
             closeModal('modal-batrisi-programs');
         } catch(err) {
@@ -1404,7 +1528,7 @@
                 showToast("Video upload safely cancelled.", "error");
             } else {
                 console.error("Upload Error:", err);
-                showToast("Failed to post upload", "error");
+                showToast("Something went wrong ❌", "error");
             }
         } finally {
             btn.disabled = false;
@@ -1550,7 +1674,7 @@
             }
             const usedThisMonth = getUsedGrantThisMonthLocal(currentUser.id);
             if (usedThisMonth >= 1000) {
-                addNotification("Your monthly grant of ₹1000 has been fully utilized.", currentUser.id);
+                sendUserNotification(currentUser.id, "Grant Limit Reached", "Your monthly grant of ₹1000 has been fully utilized. Tap to view.", null, "personal", "system");
                 alert("Your Monthly Grant Of ₹1000/- From Shree Batrisi Jain Co-Op Education Society Has Already Been Fully Utilized For This Month.\nYou Will Be Able To Use The Grant Again Next Month, When The System Automatically Renews Your ₹1000 Monthly Limit.");
                 submitBtn.disabled = false;
                 submitBtn.innerText = originalBtnText;
@@ -1590,30 +1714,40 @@
                 if (!requests.some(r => r.id === newReq.id)) {
                     requests.push(newReq); 
                 }
-                showToast("Request Submitted Successfully!");
+                showToast("Request Submitted Successfully! ✅");
                 const successMsg = "Your request has been successfully sent. Please wait for committee approval.";
-                addNotification(successMsg, currentUser.id);
-                const comMember = committeeList.find(c => c.name === newReq.assignedCommittee);
-                if (comMember) {
-                    addNotification(`New medical request from ${currentUser.name}.`, comMember.username);
-                    try {
-                        const comDoc = await db.collection('users').doc(comMember.username).get();
-                        if (comDoc.exists && comDoc.data().fcmToken) {
-                            triggerPush(comDoc.data().fcmToken, "New Medical Request", `New medical request from ${currentUser.name} requires your approval.`);
-                        }
-                    } catch(e) { console.log("Error fetching committee token", e); }
-                }
+                
+                sendUserNotification(currentUser.id, "Request Submitted", successMsg, null, "personal", "system");
+
+                try {
+                    const committeeSnapshot = await db.collection('users')
+                        .where('role', '==', 'Committee')
+                        .get();
+
+                    committeeSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        sendUserNotification(
+                            doc.id,
+                            "New Medical Request",
+                            `A new form has been submitted by ${currentUser.name} – Tap to review`,
+                            data.fcmToken,
+                            "personal",
+                            "member"
+                        );
+                    });
+                } catch(err) { console.error("Error notifying committee", err); }
+
                 renderMemberStatus();
             } catch (error) {
                 console.error("Submission Error: ", error);
-                showToast("Failed to submit request. Please try again.", "error");
+                showToast("Something went wrong ❌", "error");
                 submitBtn.disabled = false;
                 submitBtn.innerText = originalBtnText;
             }
         });
     }
 
-    function renderMemberStatus() {
+    async function renderMemberStatus() {
         document.getElementById('nav-member-status').classList.add('active');
         document.getElementById('nav-member-apply').classList.remove('active');
         if(document.getElementById('nav-member-programs')) {
@@ -1622,7 +1756,12 @@
         }
         document.getElementById('nav-member-status').querySelector('i').className = 'ph-fill ph-clock-counter-clockwise';
         document.getElementById('nav-member-apply').querySelector('i').className = 'ph ph-plus-circle';
+        
         const myReqs = requests.filter(r => r.memberId === currentUser.id).reverse();
+        if (myReqs.some(req => req.token)) {
+            await loadQRLib();
+        }
+
         const usedThisMonth = getUsedGrantThisMonthLocal(currentUser.id);
         const remainingThisMonth = Math.max(0, 1000 - usedThisMonth);
         let html = `
@@ -1702,7 +1841,7 @@
         myReqs.forEach(req => {
             if(req.token) {
                 const qrContainer = document.getElementById(`qr-${req.id}`);
-                if(qrContainer) {
+                if(qrContainer && typeof QRCode !== 'undefined') {
                     new QRCode(qrContainer, {
                         text: req.token,
                         width: 120,
@@ -1758,11 +1897,11 @@
             await db.collection('system').doc('committee').set({ list: committeeList });
             currentUser.password = newP;
             localStorage.setItem('sbj_user', JSON.stringify(currentUser));
-            showToast("Password updated successfully!");
+            showToast("Password updated successfully! ✅");
             closeModal('modal-change-password-committee');
             e.target.reset();
         } catch (err) {
-            showToast("Failed to update password", "error");
+            showToast("Something went wrong ❌", "error");
         }
     });
 
@@ -1864,14 +2003,20 @@
                 await db.collection('requests').doc(id).update(updatedFields);
                 await db.collection('system').doc('tokens').set(tokenCounters);
                 requests[reqIndex] = { ...requests[reqIndex], ...updatedFields };
-                showToast(`Approved! Token generated: ${token}`);
-                addNotification(`Your request (ID: ${req.memberId}) has been APPROVED by ${approver}`, req.memberId);
-                try {
-                    const memDoc = await db.collection('users').doc(req.memberId).get();
-                    if (memDoc.exists && memDoc.data().fcmToken) {
-                        triggerPush(memDoc.data().fcmToken, "Request Approved", `Your request has been Approved! Token: ${token}`);
-                    }
-                } catch(e) { console.log("Error fetching member token", e); }
+                showToast(`Approved! Token generated: ${token} ✅`);
+                
+                const memDoc = await db.collection('users').doc(req.memberId).get();
+                let memberFcmToken = memDoc.exists ? memDoc.data().fcmToken : null;
+                
+                await sendUserNotification(
+                    req.memberId,
+                    "Request Approved ✅",
+                    `Your request has been approved! Token: ${token} – Tap to view`,
+                    memberFcmToken,
+                    "personal",
+                    "committee"
+                );
+
                 if (currentUser && currentUser.role === 'Admin') {
                     renderAdminRequests();
                 } else {
@@ -1879,7 +2024,7 @@
                 }
             } catch (error) {
                 console.error("Error approving request:", error);
-                showToast("Error approving request", "error");
+                showToast("Something went wrong ❌", "error");
             }
         }
     }
@@ -1897,20 +2042,25 @@
         const reqIndex = requests.findIndex(r => r.id === id);
         if(reqIndex > -1) {
             const req = requests[reqIndex];
-            const approver = (currentUser && currentUser.role === 'Admin') ? 'Office Admin' : currentUser.name;
             try {
                 await db.collection('requests').doc(id).update({ status: 'Declined', declineReason: reason });
                 requests[reqIndex].status = 'Declined';
                 requests[reqIndex].declineReason = reason;
                 closeModal('modal-decline');
-                showToast("Request Declined");
-                addNotification(`Your request (ID: ${req.memberId}) has been DECLINED by ${approver}`, req.memberId);
-                try {
-                    const memDoc = await db.collection('users').doc(req.memberId).get();
-                    if (memDoc.exists && memDoc.data().fcmToken) {
-                        triggerPush(memDoc.data().fcmToken, "Request Declined", `Your request was Declined. Reason: ${reason}`);
-                    }
-                } catch(e) { console.log("Error fetching member token", e); }
+                showToast("Request Rejected ❌");
+                
+                const memDoc = await db.collection('users').doc(req.memberId).get();
+                let memberFcmToken = memDoc.exists ? memDoc.data().fcmToken : null;
+
+                await sendUserNotification(
+                    req.memberId,
+                    "Request Declined ❌",
+                    `Your request was Declined. Reason: ${reason} – Tap to view`,
+                    memberFcmToken,
+                    "personal",
+                    "committee"
+                );
+
                 if (currentUser && currentUser.role === 'Admin') {
                     renderAdminRequests();
                 } else {
@@ -1918,21 +2068,22 @@
                 }
             } catch (error) {
                 console.error("Error declining request:", error);
-                showToast("Error declining request", "error");
+                showToast("Something went wrong ❌", "error");
             }
         }
     }
 
     // ================= LABORATORY LOGIC =================
-    function startScanner() {
+    async function startScanner() {
         openModal('modal-qr-scanner');
+        await loadScannerLib();
         html5QrcodeScanner = new Html5Qrcode("reader");
         const config = { fps: 10, qrbox: { width: 250, height: 250 } };
         html5QrcodeScanner.start({ facingMode: "environment" }, config, 
             (decodedText, decodedResult) => {
                 stopScanner();
                 document.getElementById('lab-search-token').value = decodedText;
-                showToast("QR Scanned Successfully!");
+                showToast("QR Scanned Successfully! ✅");
                 searchToken();
             },
             (errorMessage) => {}
@@ -2033,7 +2184,7 @@
                 completeBtn.innerText = origBtnText;
                 completeBtn.disabled = false;
             }
-            addNotification("Monthly assistance limit of ₹1000 per month exceeded.", activeLabRequest.memberId);
+            sendUserNotification(activeLabRequest.memberId, "Limit Exceeded", "Monthly assistance limit of ₹1000 per month exceeded. Tap to view.", null, "personal", "system");
             return showToast("Member assistance limit is maximum ₹1000 per month.", "error");
         }
         const reqIndex = requests.findIndex(r => r.id === activeLabRequest.id);
@@ -2060,18 +2211,24 @@
         try {
             await db.collection('requests').doc(activeLabRequest.id).update(updatedFields);
             requests[reqIndex] = { ...requests[reqIndex], ...updatedFields };
-            showToast("Report completed and saved successfully!");
-            addNotification(`Medical report for ${activeLabRequest.patientName} completed.`, activeLabRequest.memberId);
-            try {
-                const memDoc = await db.collection('users').doc(activeLabRequest.memberId).get();
-                if (memDoc.exists && memDoc.data().fcmToken) {
-                    triggerPush(memDoc.data().fcmToken, "Report Closed", `Medical report for ${activeLabRequest.patientName} is now complete. Society Discount: ₹${discountAmt} applied.`);
-                }
-            } catch(e) { console.log("Error fetching member token", e); }
+            showToast("Report closed 🧾");
+
+            const memDoc = await db.collection('users').doc(activeLabRequest.memberId).get();
+            let memberFcmToken = memDoc.exists ? memDoc.data().fcmToken : null;
+
+            await sendUserNotification(
+                activeLabRequest.memberId,
+                "Report Completed",
+                `Your report is completed – Tap to view amount 🧾`,
+                memberFcmToken,
+                "personal",
+                "lab"
+            );
+
             resetLabSearch();
         } catch (error) {
             console.error("Firebase update failed:", error);
-            showToast("Failed to save report. Please try again.", "error");
+            showToast("Something went wrong ❌", "error");
         } finally {
             if (completeBtn) {
                 completeBtn.innerText = origBtnText;
@@ -2222,20 +2379,22 @@
         requests = requests.filter(r => r.id !== id);
         db.collection('requests').doc(id).delete().then(() => {
             closeModal('modal-delete-confirm');
-            showToast("Report Deleted Permanently!");
-            addNotification("A medical report was deleted by Admin.", "kiran.desai3667@gmail.com");
+            showToast("Report Deleted Permanently! ✅");
+            sendUserNotification("kiran.desai3667@gmail.com", "Report Deleted", "A medical report was deleted by Admin.", null, "personal", "system");
             renderAdminRequests(); 
+        }).catch(err => {
+            showToast("Something went wrong ❌", "error");
         });
     }
 
     // ================= ADMIN EXPORT LOGIC =================
-    function openExportModal(type) {
+    async function openExportModal(type) {
         document.getElementById('export-type-flag').value = 'csv';
         const filterMonth = document.getElementById('admin-filter-month') ? document.getElementById('admin-filter-month').value : 'All';
         const filterYear = document.getElementById('admin-filter-year') ? document.getElementById('admin-filter-year').value : 'All';
         let defaultName = "Medical_Report";
         if (filterMonth !== 'All') {
-            const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthNames =["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             defaultName += `_${monthNames[parseInt(filterMonth)]}`;
         }
         if (filterYear !== 'All') {
@@ -2245,6 +2404,8 @@
         }
         document.getElementById('export-file-name').value = defaultName;
         document.getElementById('export-modal-title').innerText = `Export CSV Log`;
+        
+        await loadExportLibs();
         openModal('modal-export-file');
     }
     function executeExport() {
@@ -2323,7 +2484,7 @@
                         title: "Export CSV",
                         text: "Medical Report Export"
                     }).then(() => {
-                        showToast("CSV Exported via Share!");
+                        showToast("CSV Exported via Share! ✅");
                     }).catch((err) => {
                         console.log("Share cancelled or failed:", err);
                     });
@@ -2340,13 +2501,15 @@
             setTimeout(() => {
                 window.location.href = url;
             }, 500);
-            showToast("CSV Download Triggered!");
+            showToast("CSV Download Triggered! ✅");
         } catch(e) {
             console.error(e);
-            showToast("CSV export failed", "error");
+            showToast("Something went wrong ❌", "error");
         }
     }
-    function executeNewExport(type) {
+    async function executeNewExport(type) {
+        showToast("Loading... ⏳");
+        await loadExportLibs();
         const filterStatus = document.getElementById('admin-filter-status') ? document.getElementById('admin-filter-status').value : 'All';
         const filterMonth = document.getElementById('admin-filter-month') ? document.getElementById('admin-filter-month').value : 'All';
         const filterYear = document.getElementById('admin-filter-year') ? document.getElementById('admin-filter-year').value : 'All';
@@ -2365,7 +2528,7 @@
         if(reqs.length === 0) return showToast("No data to export", "error");
         let fileName = "Medical_Report";
         if (filterMonth !== 'All') {
-            const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthNames =["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             fileName += `_${monthNames[parseInt(filterMonth)]}`;
         }
         fileName += `_${filterYear !== 'All' ? filterYear : 'All'}`;
@@ -2401,7 +2564,7 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Reports");
             XLSX.writeFile(wb, fileName + ".xlsx");
-            showToast("Excel Exported!");
+            showToast("Excel Exported! ✅");
         } else if (type === 'pdf') {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('landscape');
@@ -2412,22 +2575,21 @@
                 body: exportData,
                 startY: 20,
                 styles: { fontSize: 6, cellPadding: 1, overflow: 'linebreak' },
-                headStyles: { fillColor: [0, 149, 246] },
+                headStyles: { fillColor:[0, 149, 246] },
                 margin: { top: 20, left: 5, right: 5 },
                 theme: 'grid'
             });
             doc.save(fileName + ".pdf");
-            showToast("PDF Exported!");
+            showToast("PDF Exported! ✅");
         }
     }
 
     // Load static data on startup and if needed
     (async function init() {
         await loadStaticData();
-        await loadMemberDatabase();
-        await loadBatrisiUpdates(); // fetch programs once
+        await loadBatrisiUpdates();
         if (currentUser) {
-            setupRequestsListener(currentUser.role);
+            fetchRequests(currentUser.role);
             setupNotificationsListener(currentUser.id);
             routeUser(currentUser.role);
         }
