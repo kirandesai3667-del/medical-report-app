@@ -487,10 +487,6 @@
                             fcmToken: token,
                             lastActive: firebase.firestore.FieldValue.serverTimestamp()
                         }, { merge: true });
-                        await fetch(`${SCRIPT_URL}?subscribeTopic=true&token=${encodeURIComponent(token)}&topic=all_members`, {
-                            method: 'POST',
-                            mode: 'no-cors'
-                        });
                     }
                 }
             }
@@ -528,8 +524,19 @@
         }
     }
 
-    async function sendNotificationToAll(title, body) {
-        triggerPush('all_members', title, body, true);
+    async function sendNotificationToAll(title, message) {
+        try {
+            const snapshot = await db.collection('users').get();
+            
+            snapshot.forEach(doc => {
+                const user = doc.data();
+                if (user.fcmToken) {
+                    triggerPush(user.fcmToken, title, message);
+                }
+            });
+        } catch (error) {
+            console.error("Broadcast Error:", error);
+        }
     }
 
     function sendBroadcastNotification() {
@@ -580,7 +587,7 @@
             .where('user', '==', userId)
             .orderBy('timestamp', 'desc')
             .limit(20);
-            
+
         let initLoad = true;
         notificationsUnsubscribe = q.onSnapshot(snapshot => {
             snapshot.docChanges().forEach(change => {
@@ -610,7 +617,7 @@
             const count = document.getElementById(`notifCount-${role}`);
             if (!list || !count) return;
             list.innerHTML = "";
-            
+
             if (myNotifs.length === 0) {
                 list.innerHTML = '<p style="text-align:center; color:gray; padding: 15px;">No notifications yet 🔕</p>';
             } else {
@@ -624,7 +631,7 @@
                         markAsRead(n.id);
                         li.className = '';
                         document.querySelectorAll('.notif-dropdown').forEach(d => d.style.display = 'none');
-                        
+
                         // Routing behavior
                         if (n.title && (n.title.includes("Approved") || n.title.includes("Declined") || n.title.includes("Limit"))) {
                             if (currentUser.role === 'Member') renderMemberStatus();
@@ -642,7 +649,7 @@
                     list.appendChild(li);
                 });
             }
-            
+
             count.innerText = unreadCount;
             count.style.display = unreadCount > 0 ? "block" : "none";
         });
@@ -663,7 +670,7 @@
     function markAsRead(id) {
         db.collection('notifications').doc(id).update({ read: true }).catch(e => console.error("Mark read failed:", e));
     }
-    
+
     async function markAllRead() {
         const batch = db.batch();
         let count = 0;
@@ -866,14 +873,14 @@
         } else if (role === 'Laboratory') {
             query = query.where('lab', '==', currentUser.name);
         }
-        
+
         query = query.orderBy('timestamp', 'desc').limit(20);
 
         try {
             const snapshot = await query.get();
             requests = snapshot.docs.map(doc => doc.data());
             localStorage.setItem('sbj_requests_backup', JSON.stringify(requests));
-            
+
             const activeScreen = document.querySelector('.screen.active')?.id;
             if (activeScreen === 'screen-admin') renderAdminRequests();
             else if (activeScreen === 'screen-member') {
@@ -914,7 +921,7 @@
         try {
             const snapshot = await db.collection('batrisi_updates').orderBy('createdAt', 'desc').limit(20).get();
             batrisiUpdates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
+
             const memberScreen = document.getElementById('screen-member');
             if (memberScreen && memberScreen.classList.contains('active')) {
                 const navProg = document.getElementById('nav-member-programs');
@@ -1148,7 +1155,7 @@
         const loginBtn = document.getElementById('login-btn');
         loginBtn.innerText = "Authenticating...";
         loginBtn.disabled = true;
-        
+
         showToast("Loading... ⏳");
 
         let authenticated = false;
@@ -1518,7 +1525,7 @@
                 createdAt: timestamp,
                 target:["Member", "Committee", "Admin"] 
             });
-            
+
             sendNotificationToAll(title, msg);
             showToast("Program Posted Successfully! ✅");
             formTarget.reset();
@@ -1716,7 +1723,7 @@
                 }
                 showToast("Request Submitted Successfully! ✅");
                 const successMsg = "Your request has been successfully sent. Please wait for committee approval.";
-                
+
                 sendUserNotification(currentUser.id, "Request Submitted", successMsg, null, "personal", "system");
 
                 try {
@@ -1756,7 +1763,7 @@
         }
         document.getElementById('nav-member-status').querySelector('i').className = 'ph-fill ph-clock-counter-clockwise';
         document.getElementById('nav-member-apply').querySelector('i').className = 'ph ph-plus-circle';
-        
+
         const myReqs = requests.filter(r => r.memberId === currentUser.id).reverse();
         if (myReqs.some(req => req.token)) {
             await loadQRLib();
@@ -2004,10 +2011,10 @@
                 await db.collection('system').doc('tokens').set(tokenCounters);
                 requests[reqIndex] = { ...requests[reqIndex], ...updatedFields };
                 showToast(`Approved! Token generated: ${token} ✅`);
-                
+
                 const memDoc = await db.collection('users').doc(req.memberId).get();
                 let memberFcmToken = memDoc.exists ? memDoc.data().fcmToken : null;
-                
+
                 await sendUserNotification(
                     req.memberId,
                     "Request Approved ✅",
@@ -2048,7 +2055,7 @@
                 requests[reqIndex].declineReason = reason;
                 closeModal('modal-decline');
                 showToast("Request Rejected ❌");
-                
+
                 const memDoc = await db.collection('users').doc(req.memberId).get();
                 let memberFcmToken = memDoc.exists ? memDoc.data().fcmToken : null;
 
@@ -2404,7 +2411,7 @@
         }
         document.getElementById('export-file-name').value = defaultName;
         document.getElementById('export-modal-title').innerText = `Export CSV Log`;
-        
+
         await loadExportLibs();
         openModal('modal-export-file');
     }
