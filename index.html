@@ -499,8 +499,11 @@
         if (!target) return;
         const url = `${SCRIPT_URL}?token=${encodeURIComponent(target)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&isTopic=${isTopic}`;
         try {
-            await fetch(url, { method: 'POST', mode: 'no-cors', cache: 'no-cache' });
-        } catch (e) { console.error("Push trigger API issue:", e); }
+            const res = await fetch(url);
+            console.log("Push response:", res);
+        } catch (e) {
+            console.error("Push failed:", e);
+        }
     }
 
     async function sendUserNotification(userId, title, message, fcmToken = null, type = "personal", createdBy = "system") {
@@ -527,12 +530,26 @@
     async function sendNotificationToAll(title, message) {
         try {
             const snapshot = await db.collection('users').get();
-            
+
             snapshot.forEach(doc => {
                 const user = doc.data();
+                
+                // 🔔 Push notification
                 if (user.fcmToken) {
                     triggerPush(user.fcmToken, title, message);
                 }
+                
+                // 💾 Save in Firestore (IMPORTANT)
+                db.collection('notifications').add({
+                    user: doc.id,
+                    title: title,
+                    message: message,
+                    type: "broadcast",
+                    createdBy: "admin",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    read: false,
+                    deleted: false
+                });
             });
         } catch (error) {
             console.error("Broadcast Error:", error);
@@ -821,7 +838,7 @@
     // ================= LOAD STATIC DATA (CACHED) =================
     async function loadStaticData() {
         try {
-            const [labsDoc, committeeDoc, tokensDoc] = await Promise.all([
+            const[labsDoc, committeeDoc, tokensDoc] = await Promise.all([
                 db.collection('system').doc('labs').get(),
                 db.collection('system').doc('committee').get(),
                 db.collection('system').doc('tokens').get()
