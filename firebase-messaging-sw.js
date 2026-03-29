@@ -11,7 +11,14 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Fetch handler – service worker ko active rakhne ke liye
+self.addEventListener('fetch', (event) => {
+  // Optional: cache or just pass through
+  event.respondWith(fetch(event.request));
+});
+
 messaging.onBackgroundMessage((payload) => {
+  console.log('[sw] Background message:', payload);
   const title = payload.notification?.title || payload.data?.title || 'Batrisi Medical Sahay';
   const body = payload.notification?.body || payload.data?.body || '';
   self.registration.showNotification(title, { body });
