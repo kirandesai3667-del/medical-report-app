@@ -1307,13 +1307,18 @@ let messaging;
             }
 
             if (authenticated) {
-                currentUser = userData;
-                currentUser.id = id; 
-                if (document.getElementById('remember-me').checked) {
-                    localStorage.setItem('sbj_user', JSON.stringify(userData));
-                }
-                showToast(`Welcome, ${userData.name} ✅`);
-                routeUser(role);
+    currentUser = userData;
+    currentUser.id = id; 
+
+    // 🔥 👉 YAHI ADD KAR (IMPORTANT)
+    initPush();
+
+    if (document.getElementById('remember-me').checked) {
+        localStorage.setItem('sbj_user', JSON.stringify(userData));
+    }
+    showToast(`Welcome, ${userData.name} ✅`);
+    routeUser(role);
+}
             } else {
                 showToast("Invalid credentials!", 'error');
             }
