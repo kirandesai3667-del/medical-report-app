@@ -1,7 +1,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
 
-// 🔥 Firebase config
+// Firebase init
 firebase.initializeApp({
   apiKey: "AIzaSyC97HQL03FiX8meE2iMaVAF7EJZh7r-XAM",
   projectId: "batrisi-medical-sahay",
@@ -12,9 +12,9 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 
-// 🔔 ✅ BACKGROUND NOTIFICATION HANDLER (MOST IMPORTANT)
+// 🔔 BACKGROUND NOTIFICATION (MAIN FIX)
 messaging.onBackgroundMessage(function(payload) {
-  console.log('[SW] Background message received:', payload);
+  console.log('[SW] Background message:', payload);
 
   const title = payload.notification?.title || payload.data?.title || "Batrisi Medical Sahay";
   const body = payload.notification?.body || payload.data?.body || "";
@@ -25,47 +25,31 @@ messaging.onBackgroundMessage(function(payload) {
     badge: "/icon-192.png",
     vibrate: [200, 100, 200],
     data: {
-      url: payload.data?.url || '/',
-    },
-    tag: payload.data?.tag || "default", // duplicate control
-    renotify: true
+      url: payload.data?.url || '/'
+    }
   };
 
-  return self.registration.showNotification(title, options);
+  self.registration.showNotification(title, options);
 });
 
 
-// 🔥 ✅ NOTIFICATION CLICK HANDLER
+// 🔥 CLICK HANDLER (STABLE)
 self.addEventListener('notificationclick', function(event) {
-  console.log('[SW] Notification click');
-
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url || self.registration.scope;
+  const targetUrl = event.notification.data?.url || '/';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(function(clientList) {
 
-        // 🔄 Agar app already open hai → focus
         for (const client of clientList) {
           if (client.url.includes(targetUrl) && 'focus' in client) {
             return client.focus();
           }
         }
 
-        // 🆕 warna new tab open
         return clients.openWindow(targetUrl);
       })
   );
 });
-
-
-// 🔥 OPTIONAL (UX IMPROVEMENT)
-self.addEventListener('push', function(event) {
-  console.log('[SW] Push received');
-
-  // Purane notifications clear (optional)
-  self.registration.getNotifications().then(notifications => {
-    notifications.forEach(n => n.close());
-  });
