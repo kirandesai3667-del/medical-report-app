@@ -1,9 +1,9 @@
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
 
+// 🔥 Firebase config
 firebase.initializeApp({
   apiKey: "AIzaSyC97HQL03FiX8meE2iMaVAF7EJZh7r-XAM",
-  authDomain: "batrisi-medical-sahay.firebaseapp.com",
   projectId: "batrisi-medical-sahay",
   messagingSenderId: "632157918744",
   appId: "1:632157918744:web:0e2df6de8a4fc274ba156d"
@@ -11,53 +11,61 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// 🔔 Background notification handler (FINAL OPTIMIZED)
-messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || payload.data?.title || 'Batrisi Medical Sahay';
-  const body = payload.notification?.body || payload.data?.body || '';
 
-  const icon = payload.notification?.icon || payload.data?.icon || '/icon-192.png';
+// 🔔 ✅ BACKGROUND NOTIFICATION HANDLER (MOST IMPORTANT)
+messaging.onBackgroundMessage(function(payload) {
+  console.log('[SW] Background message received:', payload);
 
-  return self.registration.showNotification(title, {
-    body,
-    icon,
-    badge: icon,
+  const title = payload.notification?.title || payload.data?.title || "Batrisi Medical Sahay";
+  const body = payload.notification?.body || payload.data?.body || "";
+
+  const options = {
+    body: body,
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
     vibrate: [200, 100, 200],
-    tag: payload.data?.tag || "default", // ✅ duplicate control
-    renotify: true, // ✅ same tag pe update karega
     data: {
       url: payload.data?.url || '/',
-      type: payload.data?.type || "general"
-    }
-  });
+    },
+    tag: payload.data?.tag || "default", // duplicate control
+    renotify: true
+  };
+
+  return self.registration.showNotification(title, options);
 });
 
-// 🔥 Notification click handler (ADVANCED FIXED)
-self.addEventListener('notificationclick', (event) => {
+
+// 🔥 ✅ NOTIFICATION CLICK HANDLER
+self.addEventListener('notificationclick', function(event) {
+  console.log('[SW] Notification click');
+
   event.notification.close();
 
-  const url = event.notification.data?.url || '/';
+  const targetUrl = event.notification.data?.url || self.registration.scope;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
+      .then(function(clientList) {
 
-        // ✅ If already open → focus
+        // 🔄 Agar app already open hai → focus
         for (const client of clientList) {
-          if (client.url.includes(url) && 'focus' in client) {
+          if (client.url.includes(targetUrl) && 'focus' in client) {
             return client.focus();
           }
         }
 
-        // ✅ Else open new
-        return clients.openWindow(url);
+        // 🆕 warna new tab open
+        return clients.openWindow(targetUrl);
       })
   );
 });
 
-// 🔥 OPTIONAL (BEST UX) → auto close old notifications
-self.addEventListener('push', (event) => {
+
+// 🔥 OPTIONAL (UX IMPROVEMENT)
+self.addEventListener('push', function(event) {
+  console.log('[SW] Push received');
+
+  // Purane notifications clear (optional)
   self.registration.getNotifications().then(notifications => {
     notifications.forEach(n => n.close());
   });
-});
