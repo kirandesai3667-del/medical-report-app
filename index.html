@@ -1310,8 +1310,9 @@ let messaging;
     currentUser = userData;
     currentUser.id = id; 
 
-    // 🔥 👉 YAHI ADD KAR (IMPORTANT)
-    initPush();
+        setTimeout(() => {
+        initPush();
+    }, 1000);
 
     if (document.getElementById('remember-me').checked) {
         localStorage.setItem('sbj_user', JSON.stringify(userData));
