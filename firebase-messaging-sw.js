@@ -11,45 +11,66 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// 1. FORCE IMMEDIATE ACTIVATION (Prevents SW from getting stuck in "waiting")
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
 
-// 🔔 BACKGROUND NOTIFICATION (MAIN FIX)
-messaging.onBackgroundMessage(function(payload) {
-  console.log('[SW] Background message:', payload);
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
+});
+
+// 2. FETCH HANDLER (CRITICAL)
+// Resolves the "Fetch handler: DOES_NOT_EXIST" error. 
+// Required by Chrome to treat the app as a true PWA and keep the SW healthy.
+self.addEventListener('fetch', (event) => {
+  // Pass-through. No caching logic needed for now.
+});
+
+// 3. BACKGROUND NOTIFICATION HANDLER
+messaging.onBackgroundMessage((payload) => {
+  console.log('[SW] Background message received:', payload);
 
   const title = payload.notification?.title || payload.data?.title || "Batrisi Medical Sahay";
   const body = payload.notification?.body || payload.data?.body || "";
+  
+  // Use self.registration.scope so it navigates correctly on GitHub Pages
+  const clickActionUrl = payload.data?.url || self.registration.scope;
 
   const options = {
     body: body,
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
-    vibrate: [200, 100, 200],
-    data: {
-      url: payload.data?.url || '/'
-    }
+    icon: "./icon-192.png", // Ensure this path is correct relative to the SW
+    badge: "./icon-192.png",
+    vibrate: [200, 100, 200, 100, 200],
+    data: { url: clickActionUrl }
   };
 
-  self.registration.showNotification(title, options);
+  // Prevent duplicate notifications if Firebase auto-handled the `notification` payload
+  if (!payload.notification) {
+    return self.registration.showNotification(title, options);
+  }
 });
 
-
-// 🔥 CLICK HANDLER (STABLE)
-self.addEventListener('notificationclick', function(event) {
+// 4. CLICK HANDLER (Focuses the app if it's in the background, or opens it)
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url || '/';
+  const targetUrl = event.notification.data?.url || self.registration.scope;
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then(function(clientList) {
-
-        for (const client of clientList) {
-          if (client.url.includes(targetUrl) && 'focus' in client) {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Check if the PWA is already open
+      for (const client of clientList) {
+        if (client.url === targetUrl || client.url.includes(self.registration.scope)) {
+          if ('focus' in client) {
             return client.focus();
           }
         }
-
+      }
+      // If the app is fully closed, open a new window
+      if (clients.openWindow) {
         return clients.openWindow(targetUrl);
-      })
+      }
+    })
   );
 });
