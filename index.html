@@ -443,13 +443,17 @@
     };
 
     if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    const db = firebase.firestore();
+    firebase.initializeApp(firebaseConfig);
+}
+
+const db = firebase.firestore();
+
+// 🔥 ADD THIS LINE (IMPORTANT)
+let messaging;
 
     // ================= FCM & PUSH LOGIC (UPDATED FOR FCM V1) =================
     // ⚠️ REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ⚠️
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYyC_TGE2E2XkR_5_0y_2v6pS61j-P_T-G7zQ-V-_h-B0Y5YJ7lJ9G_8x_A0I/exec'; 
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGv6Q-cd1SMvbSZqYTmPrd4dpk9FzW-g0r5RA_DQiIqhgy-WTGT4EUpncnFK7lSi3LrA/exec'; 
     let messaging = null;
 
     if (firebase.messaging && firebase.messaging.isSupported()) {
@@ -506,6 +510,29 @@
         }
     }
 
+    async function initPush() {
+  try {
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      console.log("❌ Permission denied");
+      return;
+    }
+
+    const token = await messaging.getToken({
+      vapidKey: "BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I"
+    });
+
+    console.log("✅ Token:", token);
+
+    await subscribeToTopic(token, "allUsers");
+
+    console.log("✅ Subscribed to allUsers");
+
+  } catch (err) {
+    console.error("❌ Push error:", err);
+  }
+}
     async function triggerPush(target, title, body, isTopic = false) {
         if (!target) return;
         try {
