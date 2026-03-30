@@ -443,13 +443,9 @@
     };
 
     if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-const db = firebase.firestore();
-
-// 🔥 ADD THIS LINE (IMPORTANT)
-let messaging;
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
 
     // ================= FCM & PUSH LOGIC (UPDATED FOR FCM V1) =================
     // ⚠️ REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ⚠️
@@ -510,29 +506,6 @@ let messaging;
         }
     }
 
-    async function initPush() {
-  try {
-    const permission = await Notification.requestPermission();
-
-    if (permission !== "granted") {
-      console.log("❌ Permission denied");
-      return;
-    }
-
-    const token = await messaging.getToken({
-      vapidKey: "BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I"
-    });
-
-    console.log("✅ Token:", token);
-
-    await subscribeToTopic(token, "allUsers");
-
-    console.log("✅ Subscribed to allUsers");
-
-  } catch (err) {
-    console.error("❌ Push error:", err);
-  }
-}
     async function triggerPush(target, title, body, isTopic = false) {
         if (!target) return;
         try {
@@ -1307,19 +1280,13 @@ let messaging;
             }
 
             if (authenticated) {
-    currentUser = userData;
-    currentUser.id = id; 
-
-        setTimeout(() => {
-        initPush();
-    }, 1000);
-
-    if (document.getElementById('remember-me').checked) {
-        localStorage.setItem('sbj_user', JSON.stringify(userData));
-    }
-    showToast(`Welcome, ${userData.name} ✅`);
-    routeUser(role);
-}
+                currentUser = userData;
+                currentUser.id = id; 
+                if (document.getElementById('remember-me').checked) {
+                    localStorage.setItem('sbj_user', JSON.stringify(userData));
+                }
+                showToast(`Welcome, ${userData.name} ✅`);
+                routeUser(role);
             } else {
                 showToast("Invalid credentials!", 'error');
             }
