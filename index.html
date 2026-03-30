@@ -533,12 +533,12 @@
 
             snapshot.forEach(doc => {
                 const user = doc.data();
-                
+
                 // 🔔 Push notification
                 if (user.fcmToken) {
                     triggerPush(user.fcmToken, title, message);
                 }
-                
+
                 // 💾 Save in Firestore (IMPORTANT)
                 db.collection('notifications').add({
                     user: doc.id,
@@ -571,25 +571,25 @@
     }
 
     async function clearAdminNotifications() {
-        if (!currentUser) return;
         try {
             const snapshot = await db.collection('notifications')
-                .where('user', '==', currentUser.id)
+                .where('type', '==', 'broadcast')
                 .get();
 
             const batch = db.batch();
 
             snapshot.forEach(doc => {
-                const data = doc.data();
-                if (data.type === "broadcast" || data.type === "test") {
-                    batch.delete(doc.ref);
-                }
+                batch.update(doc.ref, {
+                    deleted: true
+                });
             });
 
             await batch.commit();
-            showToast("Announcements Cleared 🧹");
+
+            showToast("All announcements cleared for everyone ✅");
+
         } catch (error) {
-            console.error("Error clearing admin notifications:", error);
+            console.error("Clear Error:", error);
             showToast("Something went wrong ❌", "error");
         }
     }
@@ -610,13 +610,18 @@
             snapshot.docChanges().forEach(change => {
                 if (change.type === 'added' && !initLoad) {
                     const n = change.doc.data();
-                    if (!n.read && n.user === currentUser.id) {
+                    if (!n.read && !n.deleted && n.user === currentUser.id) {
                         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                     }
                 }
             });
             initLoad = false;
-            notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // Filter out deleted notifications everywhere
+            notifications = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(n => !n.deleted);
+                
             updateNotifUI();
         }, error => {
             console.error("Notifications listener error:", error);
