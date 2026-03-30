@@ -450,8 +450,7 @@
     // ================= FCM & PUSH LOGIC (UPDATED FOR FCM V1) =================
     // ⚠️ REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ⚠️
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGv6Q-cd1SMvbSZqYTmPrd4dpk9FzW-g0r5RA_DQiIqhgy-WTGT4EUpncnFK7lSi3LrA/exec'; 
-    let messaging = null;
-
+    let messaging;
     if (firebase.messaging && firebase.messaging.isSupported()) {
         messaging = firebase.messaging();
         messaging.onMessage((payload) => {
