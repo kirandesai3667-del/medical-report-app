@@ -140,7 +140,6 @@
 <body>
 
 <div id="app-wrapper">
-
     <div id="toast" class="toast"><i id="toast-icon" class="ph-fill ph-check-circle" style="color: var(--success); font-size: 20px;"></i> <span id="toast-msg">Success</span></div>
 
     <!-- LOGIN SCREEN -->
@@ -244,7 +243,6 @@
                 </div>
             </div>
 
-            <!-- Filters -->
             <div style="background: var(--bg-elevated); padding: 15px; border-radius: 16px; margin-top: 20px; border: 1px solid var(--border-color);">
                 <h3 style="margin-top: 0; color: var(--text-primary);">Filter Reports</h3>
                 <div style="display: flex; gap: 10px;">
@@ -271,7 +269,6 @@
                 </div>
             </div>
 
-            <!-- Admin Financial Summary -->
             <div class="card" id="admin-monthly-totals" style="margin-top: 20px; border-color: var(--accent-color);">
                 <h3 style="margin-bottom: 12px; font-size: 16px; color: var(--text-primary);">Financial Summary (Completed Reports)</h3>
                 <div class="grid-2">
@@ -450,8 +447,9 @@
     }
     const db = firebase.firestore();
 
-    // ================= FCM & PUSH LOGIC =================
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx5TuesjDfZEfkXno9pANJTOaFZ84R9N93QNyjjFkLImNwvBf7YC8SitL4pE4gxmeKf/exec';
+    // ================= FCM & PUSH LOGIC (UPDATED FOR FCM V1) =================
+    // ⚠️ REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ⚠️
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYyC_TGE2E2XkR_5_0y_2v6pS61j-P_T-G7zQ-V-_h-B0Y5YJ7lJ9G_8x_A0I/exec'; 
     let messaging = null;
 
     if (firebase.messaging && firebase.messaging.isSupported()) {
@@ -460,6 +458,22 @@
             console.log("Message received: ", payload);
             showToast(`${payload.notification?.title || payload.data?.title}: ${payload.notification?.body || payload.data?.body}`);
         });
+    }
+
+    // Function to Subscribe Token to "allUsers" via GAS Backend
+    async function subscribeToTopic(token, topic) {
+        try {
+            const params = new URLSearchParams();
+            params.append('action', 'subscribe_topic');
+            params.append('token', token);
+            params.append('topic', topic);
+            
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: params
+            });
+            console.log("Subscribed to topic:", topic);
+        } catch (e) { console.error('Topic sub failed', e); }
     }
 
     async function requestPushNotificationPermission() {
@@ -472,22 +486,19 @@
                     vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
                     serviceWorkerRegistration: registration 
                 });
+                
                 if (token) {
                     const userRef = db.collection('users').doc(currentUser.id);
-                    const userDoc = await userRef.get();
-                    let updateNeeded = true;
-                    if (userDoc.exists && userDoc.data().fcmToken === token) {
-                        updateNeeded = false;
-                    }
-                    if (updateNeeded) {
-                        await userRef.set({
-                            userId: currentUser.id,
-                            name: currentUser.name,
-                            role: currentUser.role,
-                            fcmToken: token,
-                            lastActive: firebase.firestore.FieldValue.serverTimestamp()
-                        }, { merge: true });
-                    }
+                    await userRef.set({
+                        userId: currentUser.id,
+                        name: currentUser.name,
+                        role: currentUser.role,
+                        fcmToken: token,
+                        lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+
+                    // Subscribe user to broadcast channel
+                    subscribeToTopic(token, "allUsers");
                 }
             }
         } catch (error) {
@@ -497,10 +508,18 @@
 
     async function triggerPush(target, title, body, isTopic = false) {
         if (!target) return;
-        const url = `${SCRIPT_URL}?token=${encodeURIComponent(target)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&isTopic=${isTopic}`;
         try {
-            const res = await fetch(url);
-            console.log("Push response:", res);
+            const params = new URLSearchParams();
+            params.append('action', isTopic ? 'send_topic' : 'send_token');
+            params.append('target', target);
+            params.append('title', title);
+            params.append('body', body);
+
+            const res = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: params
+            });
+            console.log("Push response sent.");
         } catch (e) {
             console.error("Push failed:", e);
         }
@@ -509,7 +528,7 @@
     async function sendUserNotification(userId, title, message, fcmToken = null, type = "personal", createdBy = "system") {
         try {
             await db.collection('notifications').add({
-                target: userId, // Updated to use 'target'
+                target: userId, 
                 title: title,
                 message: message,
                 type: type,
@@ -520,7 +539,7 @@
             });
 
             if (fcmToken) {
-                triggerPush(fcmToken, title, message);
+                triggerPush(fcmToken, title, message, false); // false = specific token
             }
         } catch (error) {
             console.error("Error sending user notification:", error);
@@ -529,18 +548,10 @@
 
     async function sendNotificationToAll(title, message) {
         try {
-            const snapshot = await db.collection('users').get();
+            // Trigger 1 single background push using the "allUsers" topic via backend
+            triggerPush('allUsers', title, message, true);
 
-            snapshot.forEach(doc => {
-                const user = doc.data();
-
-                // 🔔 Push notification
-                if (user.fcmToken) {
-                    triggerPush(user.fcmToken, title, message);
-                }
-            });
-
-            // 💾 Save SINGLE broadcast in Firestore (OPTIMIZED)
+            // Save exactly ONE record in Firestore for broadcasts
             await db.collection('notifications').add({
                 target: "all",
                 title: title,
@@ -553,7 +564,6 @@
             });
 
             showToast("Broadcast sent to all users ✅");
-
         } catch (error) {
             console.error("Broadcast Error:", error);
         }
@@ -582,13 +592,10 @@
             const batch = db.batch();
 
             snapshot.forEach(doc => {
-                batch.update(doc.ref, {
-                    deleted: true
-                });
+                batch.update(doc.ref, { deleted: true });
             });
 
             await batch.commit();
-
             showToast("All announcements cleared for everyone ✅");
 
         } catch (error) {
@@ -623,7 +630,6 @@
             });
             initLoad = false;
             
-            // Filter out deleted notifications everywhere
             notifications = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .filter(n => !n.deleted);
@@ -665,10 +671,17 @@
                     let titleHtml = n.title ? `<strong style="display:block; color:var(--accent-color); margin-bottom:4px;">${n.title}</strong>` : '';
                     let dateObj = n.timestamp?.toDate ? n.timestamp.toDate() : new Date(n.timestamp || Date.now());
                     li.innerHTML = `${titleHtml}${n.message}<small>${dateObj.toLocaleString()}</small>`;
-                    li.onclick = () => {
+                    
+                    li.onclick = async () => {
                         markAsRead(n.id);
                         li.className = '';
                         document.querySelectorAll('.notif-dropdown').forEach(d => d.style.display = 'none');
+
+                        // --- FIX: Fetch latest requests BEFORE opening the page ---
+                        if (currentUser) {
+                            showToast("Loading latest data... ⏳");
+                            await fetchRequests(currentUser.role);
+                        }
 
                         // Routing behavior
                         if (n.title && (n.title.includes("Approved") || n.title.includes("Declined") || n.title.includes("Limit"))) {
@@ -681,7 +694,10 @@
                             else if (currentUser.role === 'Committee') renderCommitteePrograms();
                             else if (currentUser.role === 'Admin') openBatrisiProgramsAdmin();
                         } else if (n.title && n.title.includes("Request")) {
-                             if (currentUser.role === 'Committee') renderCommitteeRequests();
+                             if (currentUser.role === 'Committee') {
+                                 switchScreen('screen-committee');
+                                 renderCommitteeRequests();
+                             }
                         }
                     };
                     list.appendChild(li);
@@ -932,7 +948,8 @@
         if (role === 'Member') {
             query = query.where('memberId', '==', currentUser.id);
         } else if (role === 'Committee') {
-            query = query.where('assignedCommittee', '==', currentUser.name);
+            // FIX: Using exact matching strictly to `assignedTo` as requested.
+            query = query.where('assignedTo', '==', currentUser.name);
         } else if (role === 'Laboratory') {
             query = query.where('lab', '==', currentUser.name);
         }
@@ -1291,7 +1308,7 @@
     }
 
     function routeUser(role) {
-        fetchRequests(role);
+        fetchRequests(role); // FIX: Ensures fetchRequests runs immediately on login
         setupNotificationsListener(currentUser.id);
         setTimeout(() => {
             requestPushNotificationPermission();
@@ -1986,7 +2003,10 @@
             activeNavInbox.classList.add('active');
             activeNavInbox.querySelector('i').className = 'ph-fill ph-tray';
         }
-        const myTasks = requests.filter(r => (r.assignedCommittee === currentUser.name || r.assignedTo === currentUser.name) && r.status === 'Pending');
+
+        // FIX: STRICTLY MATCH assignedTo as requested. Added assignedCommittee as well just incase old data relies on it.
+        const myTasks = requests.filter(r => (r.assignedTo === currentUser.name || r.assignedCommittee === currentUser.name) && r.status === 'Pending');
+        
         let html = `<h2>Pending Approvals</h2>`;
         if(myTasks.length === 0) {
             html += `<p style="color:var(--text-secondary); text-align:center; margin-top:30px;">You're all caught up!</p>`;
