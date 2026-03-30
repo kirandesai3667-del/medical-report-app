@@ -447,19 +447,42 @@
     }
     const db = firebase.firestore();
 
-    // ================= FCM & PUSH LOGIC (UPDATED FOR FCM V1) =================
-    // ⚠️ REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ⚠️
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGv6Q-cd1SMvbSZqYTmPrd4dpk9FzW-g0r5RA_DQiIqhgy-WTGT4EUpncnFK7lSi3LrA/exec'; 
-    let messaging;
-    if (firebase.messaging && firebase.messaging.isSupported()) {
-        messaging = firebase.messaging();
-        messaging.onMessage((payload) => {
-            console.log("Message received: ", payload);
-            showToast(`${payload.notification?.title || payload.data?.title}: ${payload.notification?.body || payload.data?.body}`);
+    // ================= SERVICE WORKER REGISTRATION =================
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("./firebase-messaging-sw.js")
+            .then((reg) => console.log("Service Worker Registered:", reg.scope))
+            .catch((err) => console.error("Registration Failed:", err));
         });
     }
 
-    // Function to Subscribe Token to "allUsers" via GAS Backend
+    // ================= FCM & PUSH LOGIC (UPDATED & SAFE) =================
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGv6Q-cd1SMvbSZqYTmPrd4dpk9FzW-g0r5RA_DQiIqhgy-WTGT4EUpncnFK7lSi3LrA/exec'; 
+    let messaging = null;
+
+    async function initFirebaseMessaging() {
+        try {
+            if (firebase.messaging) {
+                // isSupported is an async promise in compat v9+, handles unsupported environments gracefully
+                const isSupported = await firebase.messaging.isSupported();
+                if (isSupported) {
+                    messaging = firebase.messaging();
+                    messaging.onMessage((payload) => {
+                        console.log("Message received: ", payload);
+                        const title = payload.notification?.title || payload.data?.title || "New Notification";
+                        const body = payload.notification?.body || payload.data?.body || "";
+                        showToast(`${title}: ${body}`);
+                    });
+                }
+            }
+        } catch (error) {
+            console.log("Firebase Messaging not supported or failed to init:", error);
+        }
+    }
+    
+    // Call immediately (non-blocking)
+    initFirebaseMessaging();
+
     async function subscribeToTopic(token, topic) {
         try {
             const params = new URLSearchParams();
@@ -477,10 +500,17 @@
 
     async function requestPushNotificationPermission() {
         if (!messaging || !currentUser || !currentUser.id) return;
+        if (!("Notification" in window)) return; // Prevents breaking on iOS without PWAs
+        
         try {
-            const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
-            const permission = await Notification.requestPermission();
+            let permission = Notification.permission;
+            if (permission !== 'granted' && permission !== 'denied') {
+                permission = await Notification.requestPermission();
+            }
+
             if (permission === 'granted') {
+                // Safely wait for SW to be ready instead of blindly re-registering
+                const registration = await navigator.serviceWorker.ready;
                 const token = await messaging.getToken({ 
                     vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
                     serviceWorkerRegistration: registration 
@@ -496,7 +526,6 @@
                         lastActive: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
 
-                    // Subscribe user to broadcast channel
                     subscribeToTopic(token, "allUsers");
                 }
             }
@@ -514,7 +543,7 @@
             params.append('title', title);
             params.append('body', body);
 
-            const res = await fetch(SCRIPT_URL, {
+            await fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: params
             });
@@ -538,7 +567,7 @@
             });
 
             if (fcmToken) {
-                triggerPush(fcmToken, title, message, false); // false = specific token
+                triggerPush(fcmToken, title, message, false); 
             }
         } catch (error) {
             console.error("Error sending user notification:", error);
@@ -547,10 +576,7 @@
 
     async function sendNotificationToAll(title, message) {
         try {
-            // Trigger 1 single background push using the "allUsers" topic via backend
             triggerPush('allUsers', title, message, true);
-
-            // Save exactly ONE record in Firestore for broadcasts
             await db.collection('notifications').add({
                 target: "all",
                 title: title,
@@ -561,7 +587,6 @@
                 read: false,
                 deleted: false
             });
-
             showToast("Broadcast sent to all users ✅");
         } catch (error) {
             console.error("Broadcast Error:", error);
@@ -589,14 +614,9 @@
                 .get();
 
             const batch = db.batch();
-
-            snapshot.forEach(doc => {
-                batch.update(doc.ref, { deleted: true });
-            });
-
+            snapshot.forEach(doc => batch.update(doc.ref, { deleted: true }));
             await batch.commit();
             showToast("All announcements cleared for everyone ✅");
-
         } catch (error) {
             console.error("Clear Error:", error);
             showToast("Something went wrong ❌", "error");
@@ -676,13 +696,11 @@
                         li.className = '';
                         document.querySelectorAll('.notif-dropdown').forEach(d => d.style.display = 'none');
 
-                        // --- FIX: Fetch latest requests BEFORE opening the page ---
                         if (currentUser) {
                             showToast("Loading latest data... ⏳");
                             await fetchRequests(currentUser.role);
                         }
 
-                        // Routing behavior
                         if (n.title && (n.title.includes("Approved") || n.title.includes("Declined") || n.title.includes("Limit"))) {
                             if (currentUser.role === 'Member') renderMemberStatus();
                         } else if (n.title && n.title.includes("Report")) {
@@ -947,7 +965,6 @@
         if (role === 'Member') {
             query = query.where('memberId', '==', currentUser.id);
         } else if (role === 'Committee') {
-            // FIX: Using exact matching strictly to `assignedTo` as requested.
             query = query.where('assignedTo', '==', currentUser.name);
         } else if (role === 'Laboratory') {
             query = query.where('lab', '==', currentUser.name);
@@ -1307,7 +1324,7 @@
     }
 
     function routeUser(role) {
-        fetchRequests(role); // FIX: Ensures fetchRequests runs immediately on login
+        fetchRequests(role);
         setupNotificationsListener(currentUser.id);
         setTimeout(() => {
             requestPushNotificationPermission();
@@ -2003,7 +2020,6 @@
             activeNavInbox.querySelector('i').className = 'ph-fill ph-tray';
         }
 
-        // FIX: STRICTLY MATCH assignedTo as requested. Added assignedCommittee as well just incase old data relies on it.
         const myTasks = requests.filter(r => (r.assignedTo === currentUser.name || r.assignedCommittee === currentUser.name) && r.status === 'Pending');
         
         let html = `<h2>Pending Approvals</h2>`;
@@ -2683,20 +2699,6 @@
             routeUser(currentUser.role);
         }
     })();
-</script>
-
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./firebase-messaging-sw.js")
-      .then((reg) => {
-        console.log("Service Worker Registered:", reg.scope);
-      })
-      .catch((err) => {
-        console.error("Registration Failed:", err);
-      });
-  });
-}
 </script>
 </body>
 </html>
