@@ -25,18 +25,14 @@ messaging.onBackgroundMessage((payload) => {
 
     const notificationOptions = {
         body: body,
-        // ✅ Icon path matches your GitHub screenshot (icon-192.png)
         icon: '/icon-192.png',
         badge: '/icon-192.png',
-        
-        // 🔓 CRITICAL FOR LOCK SCREEN NOTIFICATIONS
         visibility: 'public',
         tag: 'batrisi-notification',
         renotify: true,
         silent: false,
         vibrate: [200, 100, 200, 100, 200],
         requireInteraction: true,
-        
         data: {
             url: self.location.origin + '/index.html'
         }
@@ -54,17 +50,36 @@ self.addEventListener('notificationclick', (event) => {
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Check if there is already a window/tab open
             for (let i = 0; i < windowClients.length; i++) {
                 const client = windowClients[i];
                 if (client.url === urlToOpen && 'focus' in client) {
                     return client.focus();
                 }
             }
-            // If no window is open, open a new one
             if (clients.openWindow) {
                 return clients.openWindow(urlToOpen);
             }
         })
     );
+});
+
+// ======================================================================
+// 🚀 PWA INSTALL FIX: PWA ke liye Fetch aur Install events zaroori hain
+// ======================================================================
+
+self.addEventListener('install', (event) => {
+    self.skipWaiting(); // Immediately activate the new service worker
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(clients.claim());
+});
+
+// Chrome requires a fetch event listener to show the "Add to Home Screen" prompt
+self.addEventListener('fetch', (event) => {
+    // Basic pass-through fetch. It just lets the network request happen normally.
+    event.respondWith(fetch(event.request).catch(() => {
+        // Agar net band ho, to app crash hone ke bajay purana page load kare
+        return caches.match(event.request); 
+    }));
 });
