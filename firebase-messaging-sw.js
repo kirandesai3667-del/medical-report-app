@@ -15,11 +15,15 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
+    // 1. Data-Only payload se title aur body extract karein
     const title = payload.data?.title || 'Batrisi All In One';
+    const body = payload.data?.body || 'You have a new update';
+    
+    // 2. Notification options (Ensure icon exists in your repo)
     const options = {
-        body: payload.data?.body || '',
-        icon: '/medical-report-app/icon-192x192.png',
-        badge: '/medical-report-app/icon-192x192.png',
+        body: body,
+        icon: self.location.origin + '/medical-report-app/icon-192x192.png',
+        badge: self.location.origin + '/medical-report-app/icon-192x192.png',
         vibrate: [200, 100, 200, 100, 200],
         requireInteraction: true,
         data: {
@@ -32,16 +36,20 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    const targetUrl = event.notification.data.url || (self.location.origin + '/medical-report-app/');
+    
+    // Default URL par redirect karein
+    const targetUrl = event.notification.data.url;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            // Agar app already khuli hai, toh use focus karo
             for (let i = 0; i < windowClients.length; i++) {
                 const client = windowClients[i];
-                if (client.url.includes('/medical-report-app/') && 'focus' in client) {
+                if (client.url.indexOf(targetUrl) !== -1 && 'focus' in client) {
                     return client.focus();
                 }
             }
+            // Agar app band hai, toh open karo
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }
