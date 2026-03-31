@@ -495,9 +495,11 @@
             params.append('token', token);
             params.append('topic', topic);
             
+            // FIX (CORS): Added mode: 'no-cors' so browser doesn't block GAS request
             await fetch(SCRIPT_URL, {
                 method: 'POST',
-                body: params
+                body: params,
+                mode: 'no-cors'
             });
             console.log("Subscribed to topic:", topic);
         } catch (e) { console.error('Topic sub failed', e); }
@@ -525,7 +527,8 @@
                 });
                 
                 if (token) {
-                    console.log("FCM Token Generated Successfully");
+                    // FIX (CONSOLE LOG): Explicitly passing the token to be logged in console
+                    console.log("FCM Token Generated Successfully: ", token);
 
                     const userRef = db.collection('users').doc(currentUser.id);
                     await userRef.set({
@@ -563,9 +566,11 @@
             params.append('notification', JSON.stringify({ title: String(title), body: String(body) }));
             params.append('data', JSON.stringify({ title: String(title), body: String(body) }));
 
+            // FIX (CORS): Added mode: 'no-cors' so browser doesn't block GAS request
             await fetch(SCRIPT_URL, {
                 method: 'POST',
-                body: params
+                body: params,
+                mode: 'no-cors'
             });
             console.log("Push response sent.");
         } catch (e) {
