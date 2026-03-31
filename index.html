@@ -1280,58 +1280,85 @@
     document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const role = document.getElementById('login-role').value;
-        const id = document.getElementById('login-id').value.trim();
+        const rawId = document.getElementById('login-id').value;
         const pass = document.getElementById('login-password').value;
         const loginBtn = document.getElementById('login-btn');
+        
         loginBtn.innerText = "Authenticating...";
         loginBtn.disabled = true;
 
         showToast("Loading... ⏳");
 
         let authenticated = false;
-        let userData = { role, id, name: id, password: pass };
+        
+        // FIX: Explicitly cast ID to string and format it safely to prevent string/number mismatches
+        const formattedId = String(rawId || "").trim().toUpperCase();
+        
+        if (!formattedId) {
+            showToast("Please enter a valid ID", "error");
+            loginBtn.innerText = "Log In";
+            loginBtn.disabled = false;
+            return;
+        }
+
+        let userData = { role, id: formattedId, name: formattedId, password: pass };
 
         try {
             if (role === 'Admin') {
-                if (id.toLowerCase() === 'kiran.desai3667@gmail.com' && pass === 'Kiran@3667') {
+                if (formattedId.toLowerCase() === 'kiran.desai3667@gmail.com' && pass === 'Kiran@3667') {
                     authenticated = true;
                     userData.name = "Admin Kiran";
                 }
             } else if (role === 'Committee') {
-                const memberMatch = committeeList.find(m => m.username === id);
+                const memberMatch = committeeList.find(m => String(m.username) === formattedId || String(m.username).toUpperCase() === formattedId);
                 if (memberMatch && pass === memberMatch.password) {
                     authenticated = true;
                     userData.name = memberMatch.name;
                 }
             } else if (role === 'Laboratory') {
-                const labMatch = Object.values(labList).find(l => l.loginId.toUpperCase() === id.toUpperCase());
+                const labMatch = Object.values(labList).find(l => String(l.loginId).toUpperCase() === formattedId);
                 if (labMatch && pass === labMatch.password) {
                     authenticated = true;
                     userData.name = labMatch.name;
                     userData.labPrefix = labMatch.prefix;
                 }
             } else if (role === 'Member') {
-                if (pass === 'Bat@123') {
-                    const memberDoc = await db.collection('members').doc(id.toUpperCase()).get();
-                    if (memberDoc.exists) {
-                        const memberInfo = memberDoc.data();
+                
+                // FIX: Ensure correct Firestore query for Member by safely using string ID
+                const memberDoc = await db.collection('members').doc(formattedId).get();
+                
+                if (memberDoc.exists) {
+                    const memberInfo = memberDoc.data();
+                    
+                    // FIX: Ensure proper data matching (ID / password). Allow custom password if set in DB.
+                    const correctPassword = memberInfo.password || 'Bat@123';
+                    
+                    if (pass === correctPassword) {
                         authenticated = true;
                         userData.name = memberInfo.name;
                         userData.address = memberInfo.address;
                         userData.native = memberInfo.native;
                         userData.mobile = memberInfo.mobile;
                     } else {
-                        showToast("Member Number not found in database. Contact Admin.", "error");
+                        showToast("Invalid credentials!", "error");
                         loginBtn.innerText = "Log In";
                         loginBtn.disabled = false;
-                        return; 
+                        return;
                     }
+                } else {
+                    showToast("Member Number not found in database. Contact Admin.", "error");
+                    loginBtn.innerText = "Log In";
+                    loginBtn.disabled = false;
+                    return; 
                 }
             }
 
             if (authenticated) {
                 currentUser = userData;
-                currentUser.id = id; 
+                
+                // FIX: Explicitly store ID as string to prevent user_id string/number mismatches in later queries
+                currentUser.id = String(formattedId); 
+                
                 if (document.getElementById('remember-me').checked) {
                     localStorage.setItem('sbj_user', JSON.stringify(userData));
                 }
@@ -1341,11 +1368,13 @@
                 showToast("Invalid credentials!", 'error');
             }
         } catch(err) {
-            console.error(err);
+            console.error("Login Error:", err);
             showToast("Something went wrong ❌", "error");
         } finally {
-            loginBtn.innerText = "Log In";
-            loginBtn.disabled = false;
+            if (loginBtn) {
+                loginBtn.innerText = "Log In";
+                loginBtn.disabled = false;
+            }
         }
     });
 
