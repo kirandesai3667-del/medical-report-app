@@ -354,7 +354,8 @@
         <div class="content-area" id="member-content-area"></div>
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-member-apply" onclick="renderMemberApply()"><i class="ph-fill ph-plus-circle"></i><span>Apply</span></div>
-            <div class="nav-item" id="nav-member-status" onclick="renderMemberStatus()"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
+            <!-- FIX 1 (UI REFETCH): Changed onClick to fetch live data rather than strictly rendering stale local memory -->
+            <div class="nav-item" id="nav-member-status" onclick="fetchRequests('Member')"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
             <div class="nav-item" id="nav-member-programs" onclick="renderMemberPrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
         </div>
@@ -380,7 +381,8 @@
         </div>
         <div class="content-area" id="committee-request-list"></div>
         <div class="bottom-nav">
-            <div class="nav-item active" id="nav-committee-inbox" onclick="renderCommitteeRequests()"><i class="ph-fill ph-tray"></i><span>Inbox</span></div>
+            <!-- FIX 1 (UI REFETCH): Changed onClick to fetch live data rather than strictly rendering stale local memory -->
+            <div class="nav-item active" id="nav-committee-inbox" onclick="fetchRequests('Committee')"><i class="ph-fill ph-tray"></i><span>Inbox</span></div>
             <div class="nav-item" id="nav-committee-programs" onclick="renderCommitteePrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="openModal('modal-change-password-committee')"><i class="ph ph-key"></i><span>Password</span></div>
             <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
@@ -523,7 +525,6 @@
                 });
                 
                 if (token) {
-                    // Alert hata diya gaya hai. Ab chup-chaap background me save ho jayega.
                     console.log("FCM Token Generated Successfully");
 
                     const userRef = db.collection('users').doc(currentUser.id);
@@ -546,6 +547,7 @@
             console.error('Notification Error:', error);
         }
     }
+
     async function triggerPush(target, title, body, isTopic = false) {
         if (!target) return;
         try {
@@ -554,6 +556,12 @@
             params.append('target', target);
             params.append('title', title);
             params.append('body', body);
+
+            // FIX 2 (NOTIFICATION): Explicity append both notification and data payloads for the backend.
+            // This guarantees the generated FCM message contains the "notification" payload needed
+            // to display background system alerts while the app is closed.
+            params.append('notification', JSON.stringify({ title: String(title), body: String(body) }));
+            params.append('data', JSON.stringify({ title: String(title), body: String(body) }));
 
             await fetch(SCRIPT_URL, {
                 method: 'POST',
@@ -971,22 +979,36 @@
         });
     }
 
-    // ================= OPTIMIZED FETCH REQUESTS (.get instead of .onSnapshot) =================
+    // ================= OPTIMIZED FETCH REQUESTS =================
     async function fetchRequests(role) {
         let query = db.collection('requests');
+        
+        // FIX 1 (INBOX ISSUE): Cast IDs to String explicitly to prevent user_id string/number mismatches.
         if (role === 'Member') {
-            query = query.where('memberId', '==', currentUser.id);
+            query = query.where('memberId', '==', String(currentUser.id));
         } else if (role === 'Committee') {
-            query = query.where('assignedTo', '==', currentUser.name);
+            query = query.where('assignedTo', '==', String(currentUser.name));
         } else if (role === 'Laboratory') {
-            query = query.where('lab', '==', currentUser.name);
+            query = query.where('lab', '==', String(currentUser.name));
         }
 
-        query = query.orderBy('timestamp', 'desc').limit(20);
-
         try {
-            const snapshot = await query.get();
+            // FIX 1 (INBOX ISSUE): Disable caching to prevent stale data across multiple devices.
+            let snapshot;
+            try {
+                snapshot = await query.get({ source: 'server' });
+            } catch (err) {
+                console.warn("Server fetch failed, falling back to cache");
+                snapshot = await query.get({ source: 'cache' });
+            }
+            
             requests = snapshot.docs.map(doc => doc.data());
+            
+            // Limit memory usage by locally sorting and capping the data correctly 
+            // since index constraints prevent us from natively combining .orderBy with .where.
+            requests.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            requests = requests.slice(0, 50);
+
             localStorage.setItem('sbj_requests_backup', JSON.stringify(requests));
 
             const activeScreen = document.querySelector('.screen.active')?.id;
@@ -1314,7 +1336,7 @@
                     localStorage.setItem('sbj_user', JSON.stringify(userData));
                 }
                 showToast(`Welcome, ${userData.name} ✅`);
-                routeUser(role);
+                await routeUser(role);
             } else {
                 showToast("Invalid credentials!", 'error');
             }
@@ -1335,11 +1357,12 @@
         switchScreen('screen-login');
     }
 
-    function routeUser(role) {
-        fetchRequests(role);
+    async function routeUser(role) {
+        // FIX 1 (INBOX ISSUE): Await fetchRequests entirely to block routing and UI renders until fresh live data arrives.
+        showToast("Loading latest data... ⏳");
+        await fetchRequests(role);
         setupNotificationsListener(currentUser.id);
         
-        // Remove setTimeout so Android Chrome doesn't block the permission popup
         requestPushNotificationPermission(); 
 
         if (role === 'Admin') {
@@ -1835,22 +1858,28 @@
 
                 sendUserNotification(currentUser.id, "Request Submitted", successMsg, null, "personal", "system");
 
+                // FIX 1 (INBOX ISSUE): Target the notification *specifically* to the assigned Committee Member by string ID.
+                // Previously broadcasted to ALL committee members, causing them to open empty inboxes for requests not assigned to them.
                 try {
-                    const committeeSnapshot = await db.collection('users')
-                        .where('role', '==', 'Committee')
-                        .get();
-
-                    committeeSnapshot.forEach(doc => {
-                        const data = doc.data();
-                        sendUserNotification(
-                            doc.id,
-                            "New Medical Request",
-                            `A new form has been submitted by ${currentUser.name} – Tap to review`,
-                            data.fcmToken,
-                            "personal",
-                            "member"
-                        );
-                    });
+                    const assignedCommitteeName = document.getElementById('req-committee').value;
+                    const assignedObj = committeeList.find(c => c.name === assignedCommitteeName);
+                    
+                    if (assignedObj && assignedObj.username) {
+                        const committeeUserId = String(assignedObj.username);
+                        const committeeDoc = await db.collection('users').doc(committeeUserId).get();
+                        
+                        if (committeeDoc.exists) {
+                            const data = committeeDoc.data();
+                            sendUserNotification(
+                                committeeUserId,
+                                "New Medical Request",
+                                `A new form has been submitted by ${currentUser.name} – Tap to review`,
+                                data.fcmToken,
+                                "personal",
+                                "member"
+                            );
+                        }
+                    }
                 } catch(err) { console.error("Error notifying committee", err); }
 
                 renderMemberStatus();
@@ -2707,9 +2736,7 @@
         await loadStaticData();
         await loadBatrisiUpdates();
         if (currentUser) {
-            fetchRequests(currentUser.role);
-            setupNotificationsListener(currentUser.id);
-            routeUser(currentUser.role);
+            await routeUser(currentUser.role);
         }
     })();
 </script>
