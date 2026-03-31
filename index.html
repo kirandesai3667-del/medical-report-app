@@ -502,52 +502,50 @@
     }
 
     async function requestPushNotificationPermission() {
-    if (!messaging || !currentUser || !currentUser.id) return;
-    if (!("Notification" in window)) {
-        console.log("Notifications not supported in this browser.");
-        return; 
-    }
-    
-    try {
-        let permission = Notification.permission;
-        if (permission !== 'granted' && permission !== 'denied') {
-            permission = await Notification.requestPermission();
+        if (!messaging || !currentUser || !currentUser.id) return;
+        if (!("Notification" in window)) {
+            console.log("Notifications not supported in this browser.");
+            return; 
         }
-
-        if (permission === 'granted') {
-            // Safely wait for SW to be ready instead of blindly re-registering
-            const registration = await navigator.serviceWorker.ready;
-            const token = await messaging.getToken({ 
-                vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
-                serviceWorkerRegistration: registration 
-            });
-            
-            if (token) {
-                console.log("TOKEN:", token);
-                alert("TOKEN: " + token);
-
-                const userRef = db.collection('users').doc(currentUser.id);
-                await userRef.set({
-                    userId: currentUser.id,
-                    name: currentUser.name,
-                    role: currentUser.role,
-                    fcmToken: token,
-                    lastActive: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                subscribeToTopic(token, "allUsers");
-            } else {
-                console.log("No Instance ID token available. Request permission to generate one.");
-                alert("Failed to generate FCM Token: Token is empty");
+        
+        try {
+            let permission = Notification.permission;
+            if (permission !== 'granted' && permission !== 'denied') {
+                permission = await Notification.requestPermission();
             }
-        } else {
-            console.log("Notification permission not granted by user.");
+
+            if (permission === 'granted') {
+                // Safely wait for SW to be ready
+                const registration = await navigator.serviceWorker.ready;
+                const token = await messaging.getToken({ 
+                    vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
+                    serviceWorkerRegistration: registration 
+                });
+                
+                if (token) {
+                    // Alert hata diya gaya hai. Ab chup-chaap background me save ho jayega.
+                    console.log("FCM Token Generated Successfully");
+
+                    const userRef = db.collection('users').doc(currentUser.id);
+                    await userRef.set({
+                        userId: currentUser.id,
+                        name: currentUser.name,
+                        role: currentUser.role,
+                        fcmToken: token,
+                        lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+
+                    subscribeToTopic(token, "allUsers");
+                } else {
+                    console.log("Failed to generate FCM Token: Token is empty");
+                }
+            } else {
+                console.log("Notification permission not granted by user.");
+            }
+        } catch (error) {
+            console.error('Notification Error:', error);
         }
-    } catch (error) {
-        console.error('Notification Error:', error);
-        alert('Notification Error: ' + error.message);
     }
-}
     async function triggerPush(target, title, body, isTopic = false) {
         if (!target) return;
         try {
@@ -1340,9 +1338,10 @@
     function routeUser(role) {
         fetchRequests(role);
         setupNotificationsListener(currentUser.id);
-        setTimeout(() => {
-            requestPushNotificationPermission();
-        }, 1500);
+        
+        // Remove setTimeout so Android Chrome doesn't block the permission popup
+        requestPushNotificationPermission(); 
+
         if (role === 'Admin') {
             document.getElementById('admin-name-display').innerText = currentUser.name;
             switchScreen('screen-admin');
