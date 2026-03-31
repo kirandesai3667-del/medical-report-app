@@ -1,6 +1,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
 
+// Firebase Config (Same as index.html)
 const firebaseConfig = {
     apiKey: "AIzaSyC97HQL03FiX8meE2iMaVAF7EJZh7r-XAM",
     authDomain: "batrisi-medical-sahay.firebaseapp.com",
@@ -11,21 +12,24 @@ const firebaseConfig = {
     appId: "1:632157918744:web:0e2df6de8a4fc274ba156d"
 };
 
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
+// Background Message Handler
 messaging.onBackgroundMessage((payload) => {
-    console.log('[SW] Background message received:', payload);
-    
-    const title = payload.data?.title || payload.notification?.title || 'Batrisi All In One';
-    const body = payload.data?.body || payload.notification?.body || 'New notification';
+    console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
-    const options = {
+    const title = payload.data?.title || payload.notification?.title || 'Batrisi All In One';
+    const body = payload.data?.body || payload.notification?.body || 'New notification received';
+
+    const notificationOptions = {
         body: body,
-        icon: '/medical-report-app/icon-192x192.png',
-        badge: '/medical-report-app/icon-192x192.png',
+        // ✅ Icon path matches your GitHub screenshot (icon-192.png)
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
         
-        // 🔓 LOCK SCREEN KE LIYE YE ZAROORI HAI
+        // 🔓 CRITICAL FOR LOCK SCREEN NOTIFICATIONS
         visibility: 'public',
         tag: 'batrisi-notification',
         renotify: true,
@@ -34,27 +38,32 @@ messaging.onBackgroundMessage((payload) => {
         requireInteraction: true,
         
         data: {
-            url: self.location.origin + '/medical-report-app/'
+            url: self.location.origin + '/index.html'
         }
     };
 
-    return self.registration.showNotification(title, options);
+    return self.registration.showNotification(title, notificationOptions);
 });
 
+// Notification Click Handler
 self.addEventListener('notificationclick', (event) => {
+    console.log('[firebase-messaging-sw.js] Notification click received.');
     event.notification.close();
-    const targetUrl = event.notification.data.url;
+
+    const urlToOpen = event.notification.data.url || self.location.origin + '/index.html';
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            // Check if there is already a window/tab open
             for (let i = 0; i < windowClients.length; i++) {
                 const client = windowClients[i];
-                if (client.url.indexOf(targetUrl) !== -1 && 'focus' in client) {
+                if (client.url === urlToOpen && 'focus' in client) {
                     return client.focus();
                 }
             }
+            // If no window is open, open a new one
             if (clients.openWindow) {
-                return clients.openWindow(targetUrl);
+                return clients.openWindow(urlToOpen);
             }
         })
     );
