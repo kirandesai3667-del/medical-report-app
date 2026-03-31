@@ -15,17 +15,24 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-    // 1. Data-Only payload se title aur body extract karein
-    const title = payload.data?.title || 'Batrisi All In One';
-    const body = payload.data?.body || 'You have a new update';
+    console.log('[SW] Background message received:', payload);
     
-    // 2. Notification options (Ensure icon exists in your repo)
+    const title = payload.data?.title || payload.notification?.title || 'Batrisi All In One';
+    const body = payload.data?.body || payload.notification?.body || 'New notification';
+
     const options = {
         body: body,
-        icon: self.location.origin + '/medical-report-app/icon-192x192.png',
-        badge: self.location.origin + '/medical-report-app/icon-192x192.png',
+        icon: '/medical-report-app/icon-192x192.png',
+        badge: '/medical-report-app/icon-192x192.png',
+        
+        // 🔓 LOCK SCREEN KE LIYE YE ZAROORI HAI
+        visibility: 'public',
+        tag: 'batrisi-notification',
+        renotify: true,
+        silent: false,
         vibrate: [200, 100, 200, 100, 200],
         requireInteraction: true,
+        
         data: {
             url: self.location.origin + '/medical-report-app/'
         }
@@ -36,20 +43,16 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    
-    // Default URL par redirect karein
     const targetUrl = event.notification.data.url;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Agar app already khuli hai, toh use focus karo
             for (let i = 0; i < windowClients.length; i++) {
                 const client = windowClients[i];
                 if (client.url.indexOf(targetUrl) !== -1 && 'focus' in client) {
                     return client.focus();
                 }
             }
-            // Agar app band hai, toh open karo
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }
