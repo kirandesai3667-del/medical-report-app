@@ -1,3 +1,7 @@
+// ======================================================================
+// FIREBASE MESSAGING SERVICE WORKER (BATRISI ALL IN ONE)
+// ======================================================================
+
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
 
@@ -16,7 +20,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// 2. 🔥 BACKGROUND MESSAGE HANDLER (Lock Screen popup fix)
+// 2. 🔥 BACKGROUND MESSAGE HANDLER (Lock Screen & Band App Fix)
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Background Message Received:', payload);
 
@@ -25,11 +29,13 @@ messaging.onBackgroundMessage((payload) => {
 
     const notificationOptions = {
         body: body,
+        // ✅ FULL URLS FOR GITHUB PAGES COMPATIBILITY
         icon: 'https://kirandesai3667-del.github.io/medical-report-app/icon-192.png',
         badge: 'https://kirandesai3667-del.github.io/medical-report-app/icon-192.png',
-        visibility: 'public',
+        visibility: 'public', // Critical for Lock Screen
         tag: 'batrisi-notification',
         renotify: true,
+        silent: false,
         vibrate: [200, 100, 200, 100, 200],
         requireInteraction: true,
         data: {
@@ -40,9 +46,11 @@ messaging.onBackgroundMessage((payload) => {
     return self.registration.showNotification(title, notificationOptions);
 });
 
-// 3. 🔥 NOTIFICATION CLICK HANDLER
+// 3. 🔥 NOTIFICATION CLICK HANDLER (Focus or Open App)
 self.addEventListener('notificationclick', (event) => {
+    console.log('[firebase-messaging-sw.js] Notification Clicked.');
     event.notification.close();
+
     const urlToOpen = event.notification.data.url || self.location.origin + '/index.html';
 
     event.waitUntil(
@@ -60,23 +68,31 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// 4. 🔥 PWA LIFECYCLE
+// 4. 🔥 PWA INSTALL LIFECYCLE (Required for "Add to Home Screen")
+// Install: Immediately activates the new service worker.
 self.addEventListener('install', (event) => {
+    console.log('[firebase-messaging-sw.js] Installing...');
     self.skipWaiting();
 });
 
+// Activate: Take control of all clients immediately.
 self.addEventListener('activate', (event) => {
+    console.log('[firebase-messaging-sw.js] Activating...');
     event.waitUntil(clients.claim());
 });
 
-// 🔥 CRITICAL FIX: TypeError (Failed to convert value to 'Response') solve karne ke liye
+// Fetch: REQUIRED by Chrome to show the Install Prompt.
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         fetch(event.request).catch(() => {
-            return caches.match(event.request).then((cachedResponse) => {
-                // Agar cache me bhi nahi mila, toh ek naya empty Response bhejdo taki crash na ho
-                return cachedResponse || new Response('Network error occurred', { status: 404 });
-            });
+            return caches.match(event.request);
         })
     );
+});
+
+// 5. AUTO-CLEANUP CACHE (Optional but helpful)
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
