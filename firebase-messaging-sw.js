@@ -1,7 +1,11 @@
+// ======================================================================
+// FIREBASE MESSAGING SERVICE WORKER (BATRISI ALL IN ONE)
+// ======================================================================
+
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
 
-// Firebase Config (Same as index.html)
+// 1. Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyC97HQL03FiX8meE2iMaVAF7EJZh7r-XAM",
     authDomain: "batrisi-medical-sahay.firebaseapp.com",
@@ -16,18 +20,19 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// Background Message Handler
+// 2. 🔥 BACKGROUND MESSAGE HANDLER (Lock Screen & Band App Fix)
 messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message:', payload);
+    console.log('[firebase-messaging-sw.js] Background Message Received:', payload);
 
     const title = payload.data?.title || payload.notification?.title || 'Batrisi All In One';
-    const body = payload.data?.body || payload.notification?.body || 'New notification received';
+    const body = payload.data?.body || payload.notification?.body || 'New Notification Received';
 
     const notificationOptions = {
         body: body,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        visibility: 'public',
+        // ✅ FULL URLS FOR GITHUB PAGES COMPATIBILITY
+        icon: 'https://kirandesai3667-del.github.io/medical-report-app/icon-192.png',
+        badge: 'https://kirandesai3667-del.github.io/medical-report-app/icon-192.png',
+        visibility: 'public', // Critical for Lock Screen
         tag: 'batrisi-notification',
         renotify: true,
         silent: false,
@@ -41,9 +46,9 @@ messaging.onBackgroundMessage((payload) => {
     return self.registration.showNotification(title, notificationOptions);
 });
 
-// Notification Click Handler
+// 3. 🔥 NOTIFICATION CLICK HANDLER (Focus or Open App)
 self.addEventListener('notificationclick', (event) => {
-    console.log('[firebase-messaging-sw.js] Notification click received.');
+    console.log('[firebase-messaging-sw.js] Notification Clicked.');
     event.notification.close();
 
     const urlToOpen = event.notification.data.url || self.location.origin + '/index.html';
@@ -63,23 +68,31 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// ======================================================================
-// 🚀 PWA INSTALL FIX: PWA ke liye Fetch aur Install events zaroori hain
-// ======================================================================
-
+// 4. 🔥 PWA INSTALL LIFECYCLE (Required for "Add to Home Screen")
+// Install: Immediately activates the new service worker.
 self.addEventListener('install', (event) => {
-    self.skipWaiting(); // Immediately activate the new service worker
+    console.log('[firebase-messaging-sw.js] Installing...');
+    self.skipWaiting();
 });
 
+// Activate: Take control of all clients immediately.
 self.addEventListener('activate', (event) => {
+    console.log('[firebase-messaging-sw.js] Activating...');
     event.waitUntil(clients.claim());
 });
 
-// Chrome requires a fetch event listener to show the "Add to Home Screen" prompt
+// Fetch: REQUIRED by Chrome to show the Install Prompt.
 self.addEventListener('fetch', (event) => {
-    // Basic pass-through fetch. It just lets the network request happen normally.
-    event.respondWith(fetch(event.request).catch(() => {
-        // Agar net band ho, to app crash hone ke bajay purana page load kare
-        return caches.match(event.request); 
-    }));
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            return caches.match(event.request);
+        })
+    );
+});
+
+// 5. AUTO-CLEANUP CACHE (Optional but helpful)
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
