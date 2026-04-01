@@ -1,7 +1,3 @@
-// ======================================================================
-// FIREBASE MESSAGING SERVICE WORKER (BATRISI ALL IN ONE - FIXED)
-// ======================================================================
-
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
 
