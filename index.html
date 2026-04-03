@@ -18,16 +18,15 @@
 
     <!-- OneSignal SDK (Added Securely) -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "c63042ff-00b4-49f0-9307-74673692e9ac",
-          path: "/medical-report-app/",  // <-- YE LINE ADD KARNI HAI
-        });
-      });
-    </script>
-
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "c63042ff-00b4-49f0-9307-74673692e9ac",
+      path: "/medical-report-app/", // <-- Is naye line ko bilkul aise hi jod dein
+    });
+  });
+</script>
     <style>
         :root {
             --bg-base: #000000;
