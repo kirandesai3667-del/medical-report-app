@@ -23,8 +23,9 @@
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
       appId: "c63042ff-00b4-49f0-9307-74673692e9ac",
-      serviceWorkerPath: "OneSignalSDKWorker.js", // <-- Ye batayega ki file folder ke andar hi hai
-      serviceWorkerParam: { scope: "/medical-report-app/" } // <-- Ye scope set karega
+      path: "/medical-report-app/", // SDK ko folder ka rasta batayega
+      serviceWorkerPath: "OneSignalSDKWorker.js", // File ka naam
+      serviceWorkerParam: { scope: "/medical-report-app/" } // Scope ko folder tak limit karega
     });
   });
 </script>
