@@ -462,20 +462,21 @@
     }
     const db = firebase.firestore();
 
-    // ================= SERVICE WORKER REGISTRATION =================
+   // ================= MASTER SERVICE WORKER REGISTRATION =================
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
+            // Hum ab master file register karenge taaki Firebase aur OneSignal ek sath chalein
             navigator.serviceWorker.register("OneSignalSDKWorker.js", { scope: "/medical-report-app/" })
             .then((reg) => {
-                console.log("Service Worker Registered:", reg.scope);
-                reg.update(); // Forces browser to pull the latest Service Worker file
+                console.log("Master SW Registered:", reg.scope);
+                reg.update(); 
             })
-            .catch((err) => console.error("Registration Failed:", err));
+            .catch((err) => console.error("SW Registration Failed:", err));
         });
     }
 
     // ================= FCM & PUSH LOGIC (UPDATED & SAFE) =================
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSTlrALSZSxjVt8VGM2Xqe-wyRQpmHA5kh_sZ5CJZtV9B3um06comWc7SJhBDT7PxZfQ/exec'; 
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAwzRlDbdv_G0Eknk9EVBJBYRBw0UfHXoha5RJRcA-JVXlyG1BIbtNMHiu6br8DxmrWg/exec'; 
     let messaging = null;
 
     async function initFirebaseMessaging() {
