@@ -16,21 +16,22 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
-    <!-- OneSignal SDK -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "c63042ff-00b4-49f0-9307-74673692e9ac",
-          path: "/medical-report-app/",
-          serviceWorkerPath: "OneSignalSDKWorker.js",
-          serviceWorkerParam: { scope: "/medical-report-app/" },
-          notifyButton: { enable: true },
-          allowLocalhostAsSecureOrigin: true,
-        });
-      });
-    </script>
+   <!-- OneSignal SDK -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "c63042ff-00b4-49f0-9307-74673692e9ac",
+      // Ye lines hatane ke baad OneSignal ko batayenge ki kahan register karna hai
+      path: "/medical-report-app/", 
+      serviceWorkerPath: "OneSignalSDKWorker.js",
+      serviceWorkerParam: { scope: "/medical-report-app/" },
+      allowLocalhostAsSecureOrigin: true,
+    });
+    console.log("OneSignal is now handling registration automatically.");
+  });
+</script>
     <style>
         :root {
             --bg-base: #000000;
@@ -462,20 +463,7 @@
     }
     const db = firebase.firestore();
 
-   // ================= MASTER SERVICE WORKER REGISTRATION =================
-    if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-            // Hum ab master file register karenge taaki Firebase aur OneSignal ek sath chalein
-            navigator.serviceWorker.register("OneSignalSDKWorker.js", { scope: "/medical-report-app/" })
-            .then((reg) => {
-                console.log("Master SW Registered:", reg.scope);
-                reg.update(); 
-            })
-            .catch((err) => console.error("SW Registration Failed:", err));
-        });
-    }
-
-    // ================= FCM & PUSH LOGIC (UPDATED & SAFE) =================
+       // ================= FCM & PUSH LOGIC (UPDATED & SAFE) =================
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAwzRlDbdv_G0Eknk9EVBJBYRBw0UfHXoha5RJRcA-JVXlyG1BIbtNMHiu6br8DxmrWg/exec'; 
     let messaging = null;
 
