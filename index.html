@@ -1,930 +1,331 @@
-<!DOCTYPE html>
-<html lang="gu">
+<!DOCTYPE html> 
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Corporate ID Card</title>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Mogra&family=Noto+Sans+Gujarati:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- html2canvas -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Batrisi All In One</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
 
-    <!-- Cropper.js (For Image Cropping) -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
-    <!-- SheetJS for Excel Export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- jsPDF for PDF Export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- 🚀 ONESIGNAL SDK SETUP (Fixed for Subdirectory & Conflict) -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "c63042ff-00b4-49f0-9307-74673692e9ac",
+          path: "/medical-report-app/",
+          serviceWorkerPath: "OneSignalSDKWorker.js",
+          serviceWorkerParam: { scope: "/medical-report-app/" },
+          notifyButton: { enable: true },
+          allowLocalhostAsSecureOrigin: true,
+        });
+      });
+    </script>
 
     <style>
-        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-
-        @font-face {
-            font-family: 'KAP_36_';
-            src: local('KAP_36_'); 
-        }
-
         :root {
-            --primary: #0f3460; --secondary: #2563eb; --text-dark: #0f172a; --text-light: #334155; --bg-body: #f8fafc;
-            --card-w: 428px; --card-h: 270px;
+            --bg-base: #000000; --bg-surface: #0a0a0a; --bg-elevated: #1a1a1a;
+            --bg-glass: rgba(10, 10, 10, 0.85); --text-primary: #F5F5F5;
+            --text-secondary: #A8A8A8; --accent-color: #0095F6; 
+            --accent-hover: #1877F2; --gradient-primary: linear-gradient(135deg, #0095F6 0%, #bc1888 100%);
+            --danger: #ED4956; --success: #00ba7c; --warning: #f09433;
+            --border-color: #262626; --border-light: #363636;
         }
-
-        body { font-family: 'Poppins', 'Noto Sans Gujarati', sans-serif; background-color: var(--bg-body); margin: 0; padding: 20px; color: var(--text-dark); overflow-x: hidden;}
-        .header-title { text-align: center; color: var(--primary); font-weight: 800; margin: 0; font-size: 28px; }
-        
-        .top-bar { display: flex; justify-content: space-between; align-items: center; max-width: 1250px; margin: 0 auto 30px auto; flex-wrap: wrap; gap: 15px;}
-        .container { display: flex; flex-wrap: wrap; gap: 40px; max-width: 1250px; margin: 0 auto; justify-content: center; align-items: flex-start;}
-
-        /* Login Screen Styles */
-        .login-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 9999; }
-        .login-box { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); width: 100%; max-width: 380px; text-align: center; }
-        .login-box h2 { color: var(--primary); margin-top: 0; margin-bottom: 5px; font-family: 'Mogra', cursive; font-size: 24px;}
-        .login-box p { color: var(--text-light); font-size: 14px; margin-bottom: 25px; font-weight: 600; }
-        .login-box .form-group { text-align: left; margin-bottom: 15px; }
-        .login-error { color: white; background: #ef4444; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 15px; display: none; }
-        
-        .pwd-wrapper { position: relative; width: 100%; display: flex; align-items: center; }
-        .pwd-wrapper input { width: 100%; padding-right: 40px !important; box-sizing: border-box; }
-        .pwd-wrapper i { position: absolute; right: 12px; cursor: pointer; color: var(--text-light); font-size: 16px; transition: 0.2s;}
-        .pwd-wrapper i:hover { color: var(--secondary); }
-        .remember-group { display: flex; align-items: center; gap: 8px; margin-top: -5px; margin-bottom: 15px; cursor: pointer;}
-        .remember-group label { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--text-light); cursor: pointer; display: flex; align-items: center; gap: 6px;}
-        .remember-group input[type="checkbox"] { margin: 0; width: 15px; height: 15px; cursor: pointer; accent-color: var(--secondary);}
-
-        .btn-logout { background: #ef4444; padding: 8px 16px; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; font-size: 14px; transition: 0.3s;}
-        .btn-logout:hover { background: #dc2626; transform: translateY(-2px); }
-
-        /* Form Styling */
-        .form-panel { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); flex: 1; min-width: 320px; max-width: 500px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-content: start; }
-        .form-group { display: flex; flex-direction: column; }
-        .form-group.full-width { grid-column: span 2; }
-        .form-group label { font-size: 13px; font-weight: 700; color: var(--text-light); margin-bottom: 5px; }
-        .form-group input, .form-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-weight: 500; font-family: inherit; transition: 0.3s; outline: none; }
-        .form-group input:focus, .form-group select:focus { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
-        .hint-text { font-size: 11.5px; color: #b45309; margin-top: 4px; font-weight: 600; }
-
-        .transl-toggle-bar { grid-column: span 2; background: #eff6ff; padding: 12px; border-radius: 8px; border: 1px solid #bfdbfe; display: flex; align-items: center; gap: 10px; }
-        .transl-toggle-bar label { margin: 0; color: #1e3a8a; font-size: 13.5px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; }
-        .transl-toggle-bar input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--secondary); margin: 0;}
-
-        /* Card Preview */
-        .preview-panel { display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px;}
-        
-        /* ઓપરેટર માટે મોટી સાઈઝનું કાર્ડ (ZOOMED 25%) */
-        .card-scaler { 
-            transform: scale(1.25); 
-            transform-origin: top center; 
-            margin-bottom: 70px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-            border-radius: 10px;
-        }
-
-        .id-card { width: var(--card-w); height: var(--card-h); background: linear-gradient(135deg, #ffffff 0%, #f4f7fb 100%); display: flex; flex-direction: column; box-sizing: border-box; border-radius: 10px; border: 1.5px solid #cbd5e1; overflow: hidden; }
-        .card-header { text-align: center; border-bottom: 2px solid var(--secondary); padding: 6px 16px 4px 16px; background: rgba(255,255,255,0.9); flex-shrink: 0; }
-        .card-header h2 { margin: 0 0 3px 0; font-family: 'Mogra', serif; font-size: 12.5px; color: var(--primary); font-weight: 400; line-height: 1.4; }
-        .card-header .address { margin: 0; font-size: 6.8px; color: var(--text-dark); font-weight: 600; line-height: 1.4; }
-        .card-header .contact { margin: 2px 0 0 0; font-size: 6.5px; color: #b91c1c; font-weight: 700; }
-        .card-body { display: grid; grid-template-columns: 50px 1fr 68px; gap: 12px; align-items: start; padding: 8px 16px; flex-grow: 1; }
-        
-        .logo-box { width: 46px; height: 46px; display: flex; justify-content: center; align-items: center; background: #f1f5f9; border-radius: 5px; overflow: hidden; border: 1px solid #cbd5e1;}
-        .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        
-        .details-box { display: flex; flex-direction: column; gap: 0px; }
-        
-        /* UPDATED: Uniform Size and KAP_36_ Font for specific fields */
-        .detail-item { display: flex; align-items: flex-start; line-height: 1.4; margin-bottom: 3.5px; }
-        .detail-icon { color: var(--secondary); width: 14px; font-size: 8.5px; text-align: center; margin-right: 5px; margin-top: 2px; }
-        
-        .detail-label, .detail-value { 
-            font-family: 'KAP_36_', 'Noto Sans Gujarati', sans-serif;
-            font-size: 10px; /* SAME EXACT SIZE FOR BOTH */
-        }
-        
-        .detail-label { color: var(--text-light); font-weight: 600; width: 68px; }
-        .detail-value { color: var(--text-dark); font-weight: 600; flex: 1; display: flex; gap: 4px; }
-        
-        .photo-box { width: 66px; height: 88px; border-radius: 4px; border: 2px solid var(--secondary); display: flex; justify-content: center; align-items: center; background: #e2e8f0; overflow: hidden; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
-        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
-        
-        .card-footer { display: flex; justify-content: space-between; align-items: flex-end; padding: 4px 16px 6px 16px; border-top: 1px solid #cbd5e1; background: linear-gradient(to top, #f4f7fb 90%, rgba(244,247,251,0.5) 100%); flex-shrink: 0; }
-        .sign-block { display: flex; flex-direction: column; }
-        .sign-block.left { align-items: flex-start; }
-        .sign-block.right { align-items: flex-end; }
-        .sign-block img { height: 22px; width: auto; max-width: 80px; object-fit: contain; margin-bottom: 2px; }
-        .sign-block p { margin: 0; font-size: 9px; color: var(--text-dark); font-weight: 600; line-height: 1.2; }
-        .sign-block span { font-weight: 500; color: var(--text-light); font-size: 8px; }
-
-        /* Buttons */
-        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-        .btn { padding: 10px 20px; font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s; color: white; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
-        .btn-save { background-color: #16a34a; width: 100%; justify-content: center; margin-top: 10px; }
-        .btn-clear { background-color: #64748b; width: 100%; justify-content: center; }
-        
-        .btn-print { background-color: var(--secondary); padding: 12px 25px; font-size: 15px; box-shadow: 0 4px 15px rgba(37,99,235,0.3);}
-        .btn-download-card { background-color: #8b5cf6; padding: 12px 25px; font-size: 15px; box-shadow: 0 4px 15px rgba(139,92,246,0.3);}
-
-        /* Database Table & Search */
-        .table-container { width: 100%; max-width: 1250px; margin: 40px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); overflow-x: auto; }
-        .table-header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;}
-        .table-title { margin: 0; color: var(--primary); font-family: 'Mogra', cursive; font-size: 20px; }
-        
-        .action-group-right { display: flex; align-items: center; gap: 15px; flex-wrap: wrap;}
-        .export-btns { display: flex; gap: 10px; }
-        .btn-excel { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; font-size: 13px; transition: 0.2s;}
-        .btn-excel:hover { background: #059669; }
-        .btn-pdf { background: #f43f5e; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; font-size: 13px; transition: 0.2s;}
-        .btn-pdf:hover { background: #e11d48; }
-
-        .search-box { position: relative; width: 100%; max-width: 320px; }
-        .search-box i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-light); }
-        .search-box input { width: 100%; padding: 10px 15px 10px 40px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; transition: 0.3s; box-sizing: border-box; }
-        .search-box input:focus { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
-
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
-        th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
-        th { background: #f1f5f9; color: var(--text-dark); font-weight: 600; white-space: nowrap; }
-        .action-btns { display: flex; gap: 8px; flex-wrap: wrap;}
-        .btn-sm { padding: 6px 10px; font-size: 13px; border: none; border-radius: 4px; cursor: pointer; color: white; transition: 0.2s; display: flex; justify-content: center; align-items: center;}
-        .btn-sm:hover { opacity: 0.8; transform: scale(1.05);}
-        
-        /* Individual Table Buttons */
-        .btn-print-sm { background: var(--secondary); }
-        .btn-download-sm { background: #8b5cf6; } /* Purple Download Button */
-        .btn-edit { background: #f59e0b; }
-        .btn-delete { background: #ef4444; }
-        
-        .date-badge { font-size: 12px; color: #475569; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;}
-
-        /* Image Cropper Modal */
-        .crop-modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); justify-content: center; align-items: center; }
-        .crop-container { background: #fff; padding: 20px; border-radius: 12px; width: 90%; max-width: 500px; text-align: center; }
-        .crop-container h3 { margin-top: 0; color: var(--primary); }
-        .img-crop-area { width: 100%; height: 350px; background: #e2e8f0; margin-bottom: 15px; border-radius: 8px; overflow: hidden; }
-        .img-crop-area img { max-width: 100%; display: block; }
-        .crop-btns { display: flex; gap: 10px; justify-content: center; }
-        .btn-crop-cancel { background-color: #64748b; color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 40%;}
-        .btn-crop-save { background-color: var(--secondary); color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 60%;}
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-base); color: var(--text-primary); height: 100dvh; width: 100vw; overflow: hidden; display: flex; justify-content: center; }
+        #app-wrapper { width: 100%; max-width: 480px; height: 100%; background-color: var(--bg-base); position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
+        .screen { display: none; flex-direction: column; height: 100%; width: 100%; position: absolute; top: 0; left: 0; background: var(--bg-base); z-index: 10; animation: fadeIn 0.3s ease; }
+        .screen.active { display: flex; }
+        .content-area { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; scroll-behavior: smooth; }
+        .header { background: var(--bg-glass); backdrop-filter: blur(16px); padding: 20px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 30; display: flex; justify-content: space-between; align-items: center; }
+        .header-title { font-weight: 700; font-size: 18px; }
+        .notif-count { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 10px; border: 2px solid var(--bg-base); }
+        .notif-dropdown { display: none; position: absolute; right: 0; top: 40px; width: 280px; background: var(--bg-elevated); border-radius: 16px; border: 1px solid var(--border-light); padding: 15px; max-height: 350px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .card { background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 20px; padding: 20px; margin-bottom: 15px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+        input, select, textarea { width: 100%; background: var(--bg-surface); border: 1px solid var(--border-light); color: var(--text-primary); padding: 16px; border-radius: 16px; font-size: 15px; outline: none; }
+        button { width: 100%; border: none; padding: 16px; border-radius: 16px; font-size: 16px; font-weight: 600; cursor: pointer; color: #fff; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-gradient { background: var(--gradient-primary); }
+        .bottom-nav { background: var(--bg-glass); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 15px 0; position: absolute; bottom: 0; width: 100%; z-index: 30; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); cursor: pointer; font-size: 11px; width: 100%; }
+        .nav-item.active { color: var(--text-primary); }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: var(--bg-elevated); color: var(--text-primary); padding: 14px 24px; border-radius: 30px; z-index: 9999; transition: 0.4s; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border-light); }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .action-card { background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; text-align: center; }
+        .table-container { width: 100%; overflow-x: auto; background: var(--bg-elevated); border-radius: 12px; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; color: #fff; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .pending { background: rgba(240, 148, 51, 0.2); color: var(--warning); }
+        .approved { background: rgba(0, 186, 124, 0.2); color: var(--success); }
+        .img-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 12px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
-    <!-- 1. SECURE LOGIN SCREEN -->
-    <div id="login-wrapper" class="login-wrapper">
-        <div class="login-box">
-            <h2><i class="fa-solid fa-shield-halved"></i> Security Login</h2>
-            <p>શ્રી બત્રીસી જૈન આઈડી કાર્ડ સિસ્ટમ</p>
-            
-            <div id="login-error" class="login-error">ખોટું ID અથવા Password!</div>
-            
-            <div class="form-group full-width">
-                <label>User ID</label>
-                <input type="text" id="loginId" placeholder="Enter User ID">
-            </div>
-            
-            <div class="form-group full-width">
-                <label>Password</label>
-                <div class="pwd-wrapper">
-                    <input type="password" id="loginPwd" placeholder="Enter Password" onkeypress="handleEnter(event)">
-                    <i class="fa-solid fa-eye" id="toggleEye" onclick="togglePassword()"></i>
-                </div>
-            </div>
+<div id="app-wrapper">
+    <div id="toast" class="toast"><i id="toast-icon" class="ph-fill ph-check-circle" style="color: var(--success);"></i> <span id="toast-msg">Success</span></div>
 
-            <div class="remember-group full-width">
-                <label>
-                    <input type="checkbox" id="rememberMe"> Remember Password (પાસવર્ડ યાદ રાખો)
-                </label>
+    <!-- 1. LOGIN SCREEN -->
+    <div id="screen-login" class="screen active">
+        <div class="content-area" style="display: flex; flex-direction: column; justify-content: center;">
+            <div style="text-align: center; margin-bottom: 30px;"><i class="ph-fill ph-shield-check" style="font-size: 50px; color: var(--accent-color);"></i><h1 class="brand-gradient" style="font-size: 24px;">Batrisi All In One</h1></div>
+            <div class="card">
+                <form id="login-form">
+                    <div class="form-group"><label>Select Role</label><select id="login-role"><option value="Member">Member</option><option value="Admin">Admin</option><option value="Committee">Committee Member</option><option value="Laboratory">Laboratory</option></select></div>
+                    <div class="form-group"><label id="login-id-label">Member Number</label><input type="text" id="login-id" placeholder="Enter ID" required></div>
+                    <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="Password" required></div>
+                    <button type="submit" class="btn-gradient" id="login-btn">Log In</button>
+                </form>
             </div>
-            
-            <button class="btn btn-save" onclick="performLogin()" style="margin-top: 10px; width: 100%;">
-                <i class="fa-solid fa-right-to-bracket"></i> Login System
-            </button>
         </div>
     </div>
 
-    <!-- 2. MAIN APPLICATION -->
-    <div id="app-wrapper" style="display: none;">
+    <!-- 2. ADMIN DASHBOARD -->
+    <div id="screen-admin" class="screen">
+        <div class="header">
+            <div><div class="header-title">Admin Panel</div></div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <i class="ph ph-arrows-clockwise" onclick="refreshSystemData()"></i>
+                <div class="bell" onclick="toggleNotifications('admin')"><i class="ph ph-bell"></i><span id="notifCount-admin" class="notif-count">0</span><div id="notifDropdown-admin" class="notif-dropdown"><ul id="notifList-admin"></ul></div></div>
+                <i class="ph ph-sign-out" style="color: var(--danger);" onclick="logout()"></i>
+            </div>
+        </div>
+        <div class="content-area">
+            <div class="grid-2">
+                <div class="action-card" onclick="openModal('modal-upload-excel')"><i class="ph ph-file-xls"></i><span>Upload Excel</span></div>
+                <div class="action-card" onclick="openManageLabs()"><i class="ph ph-flask"></i><span>Manage Labs</span></div>
+                <div class="action-card" onclick="openManageCommittee()"><i class="ph ph-users-three"></i><span>Committee</span></div>
+                <div class="action-card" onclick="openBatrisiProgramsAdmin()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
+                <div class="action-card" onclick="openModal('modal-send-notification')"><i class="ph ph-broadcast"></i><span>Send Notification to All</span></div>
+            </div>
+
+            <div class="card" id="admin-summary" style="margin-top:20px;">
+                <h3>Financial Summary (Completed)</h3>
+                <div class="grid-2" style="margin-top:10px;">
+                    <div class="action-card" style="background: rgba(0, 149, 246, 0.1);"><span id="admin-total-original" style="font-weight: 800;">₹ 0.00</span><br><span style="font-size:10px;">W/O DISC</span></div>
+                    <div class="action-card" style="background: rgba(0, 186, 124, 0.1);"><span id="admin-total-final" style="font-weight: 800; color:var(--success);">₹ 0.00</span><br><span style="font-size:10px;">PAID AMOUNT</span></div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="admin-request-table"><thead><tr><th>Token</th><th>Status</th><th>Patient Details</th><th>Action</th></tr></thead><tbody id="admin-tbody"></tbody></table>
+            </div>
+        </div>
+        <div class="bottom-nav"><div class="nav-item active"><i class="ph-fill ph-squares-four"></i><span>Panel</span></div><div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div></div>
+    </div>
+
+    <!-- 3. MEMBER DASHBOARD -->
+    <div id="screen-member" class="screen">
+        <div class="header"><div class="header-title">Member Hub</div><i class="ph ph-sign-out" onclick="logout()"></i></div>
+        <div class="content-area" id="member-content-area"></div>
+        <div class="bottom-nav">
+            <div class="nav-item active" id="nav-member-apply" onclick="renderMemberApply()"><i class="ph-fill ph-plus-circle"></i><span>Apply</span></div>
+            <div class="nav-item" id="nav-member-status" onclick="fetchRequests('Member')"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
+            <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="modal-send-notification" class="modal"><div class="modal-content"><h2 style="text-align: center;">Send Broadcast</h2><div class="form-group"><label>Title</label><input type="text" id="notif-title" required></div><div class="form-group"><label>Message</label><textarea id="notif-message" rows="4" required></textarea></div><div class="grid-2"><button class="btn-gradient" onclick="sendBroadcastNotification()">Send Now</button><button class="btn-outline" onclick="closeModal('modal-send-notification')">Cancel</button></div></div></div>
+    <div id="modal-upload-excel" class="modal"><div class="modal-content"><h2>Upload Members</h2><input type="file" id="excel-file" accept=".xlsx, .csv"><button class="btn-gradient" style="margin-top:15px;" onclick="handleExcelUpload()">Upload File</button><button class="btn-outline" style="margin-top:10px;" onclick="closeModal('modal-upload-excel')">Close</button></div></div>
+    <div id="modal-view-photo" class="modal"><div class="modal-content" style="background:transparent; align-items:center;"><img id="full-photo" src="" style="max-width:100%; border-radius:12px;"><button class="btn-outline" style="margin-top:15px; color:#fff;" onclick="closeModal('modal-view-photo')">Close</button></div></div>
+
+</div>
+
+<script>
+    // ================= CONFIG & DATA (SAB KUCH RESTORED) =================
+    const firebaseConfig = { apiKey: "AIzaSyC97HQL03FiX8meE2iMaVAF7EJZh7r-XAM", authDomain: "batrisi-medical-sahay.firebaseapp.com", projectId: "batrisi-medical-sahay", storageBucket: "batrisi-medical-sahay.firebasestorage.app", messagingSenderId: "632157918744", appId: "1:632157918744:web:0e2df6de8a4fc274ba156d" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxBtbwnXQj22LmrUAA-dV3ZXuoQePzljC-goG_XeQ386xHP76ZJOUVr3DQ8DJ4bvCZO/exec';
+
+    // 🏆 FULL COMMITTEE LIST (RE-ADDED)
+    const DEFAULT_COMMITTEE = [
+        {name: "HITENDRABHAI JASHWANTLAL SHAH", mobile: "9825698298"}, {name: "GUNWANTLAL CHANDULAL SHAH", mobile: "9825441916"},
+        {name: "MAYANKKUMAR RAMANLAL SHAH", mobile: "9537714100"}, {name: "SRUJAL PANKAJKUMAR SHAH", mobile: "9824010710"},
+        {name: "PRAGNESHBHAI RAMESHCHANDRA SHAH", mobile: "9426083001"}, {name: "HIMANSHU MAHENDRAKUMAR SHAH", mobile: "9426084338"},
+        {name: "ASHVINKUMAR PUNAMCHAND SHAH", mobile: "9426327144"}, {name: "BHAVESH BIPINCHANDRA SHAH", mobile: "9824313180"},
+        {name: "CHIRAGBHAI RASIKLAL SHAH", mobile: "9898986763"}, {name: "JAYESHKUMAR CHINUBHAI SHAH", mobile: "9825580044"},
+        {name: "NAYANKUMAR ARVINDKUMAR SHAH", mobile: "9924446767"}, {name: "NAILESHBHAI JAYANTILAL SHAH", mobile: "9824499844"},
+        {name: "PRAVINCHANDRA POPATLAL SHAH", mobile: "9898251001"}, {name: "SANDIP MAHENDARABHAI SHAH", mobile: "9327054179"},
+        {name: "SAUMILKUMAR SOMCHAND SHAH", mobile: "9374005997"}, {name: "SHRENIKKUMAR SAKARCHAND SHAH", mobile: "9879033203"},
+        {name: "MINESH DEVENDRABHAI SHAH", mobile: "9327513549"}, {name: "RAKESH BHARATBHAI SHAH", mobile: "9825253932"},
+        {name: "MIHIR DINESHBHAI SHAH", mobile: "9909902687"}
+    ];
+
+    let currentUser = JSON.parse(localStorage.getItem('sbj_user')) || null;
+    let requests = [];
+    let committeeList = DEFAULT_COMMITTEE.map(c => ({name: c.name, username: c.mobile, password: 'Bat@3232'}));
+
+    // Master Service Worker Integration (Important for Conflict Fix)
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("./OneSignalSDKWorker.js", { scope: "/medical-report-app/", updateViaCache: 'none' })
+            .then(reg => { console.log("Master SW Active"); reg.update(); })
+            .catch(err => console.log("Worker Failed", err));
+        });
+    }
+
+    // ================= 🚀 SECURE ONESIGNAL BROADCAST =================
+    async function triggerOneSignalBroadcastSecure(title, message) {
+        try {
+            const params = new URLSearchParams();
+            params.append('action', 'send_onesignal_broadcast'); // Google Script matches this
+            params.append('title', title);
+            params.append('body', message);
+            await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+            console.log("OneSignal Broadcast Triggered securely via GAS.");
+        } catch (e) { console.error("Broadcast Trigger Failed:", e); }
+    }
+
+    async function sendBroadcastNotification() {
+        const title = document.getElementById('notif-title').value.trim();
+        const message = document.getElementById('notif-message').value.trim();
+        if(!title || !message) return showToast("Fill title & message", "error");
         
-        <div class="top-bar">
-            <h1 class="header-title">Premium Corporate ID Card</h1>
-            <button class="btn-logout" onclick="logoutApp()"><i class="fa-solid fa-power-off"></i> Logout</button>
-        </div>
-
-        <div class="container">
-            <!-- Input Form -->
-            <div class="form-panel">
-                <input type="hidden" id="recordId"> 
-
-                <div class="transl-toggle-bar">
-                    <input type="checkbox" id="enableTransliteration" checked>
-                    <label for="enableTransliteration">
-                        <i class="fa-solid fa-language"></i> ગુજરાતી ટાઈપિંગ (English માં લખી Space દબાવો)
-                    </label>
-                </div>
-
-                <div class="form-group full-width">
-                    <label>સભ્ય નંબર</label>
-                    <input type="text" id="memberNo" placeholder="દા.ત. ૧૦૦૧" oninput="updateField('memberNo', 'val-memberNo')">
-                </div>
-                
-                <div class="form-group full-width">
-                    <label>પૂરું નામ</label>
-                    <input type="text" id="name" placeholder="વ્યક્તિનું નામ" oninput="updateField('name', 'val-name')">
-                    <div class="hint-text"><i class="fa-solid fa-circle-info"></i> નોંધ: કોઈપણ ખાનામાં English માં લખી Space દબાવશો એટલે આપમેળે ગુજરાતીમાં (આંકડા સહિત) ફેરવાઈ જશે.</div>
-                </div>
-                
-                <div class="form-group full-width">
-                    <label>સરનામું</label>
-                    <input type="text" id="address" placeholder="રહેઠાણનું સરનામું (પીનકોડ સાથે)" oninput="updateField('address', 'val-address')">
-                </div>
-
-                <div class="form-group">
-                    <label>મૂળ વતન</label>
-                    <input type="text" id="hometown" placeholder="વતનનું નામ" oninput="updateField('hometown', 'val-hometown')">
-                </div>
-
-                <div class="form-group">
-                    <label>જન્મ તારીખ</label>
-                    <input type="text" id="dob" placeholder="DD/MM/YYYY" oninput="updateField('dob', 'val-dob')">
-                </div>
-
-                <div class="form-group">
-                    <label>મોબાઇલ નંબર</label>
-                    <input type="text" id="mobile" placeholder="૧૦ આંકડાનો નંબર" oninput="updateField('mobile', 'val-mobile')">
-                </div>
-
-                <div class="form-group">
-                    <label>બ્લડ ગ્રુપ</label>
-                    <select id="bloodgroup" onchange="updateField('bloodgroup', 'val-bloodgroup')">
-                        <option value="-">પસંદ કરો</option>
-                        <option value="A+">A+</option> <option value="A-">A-</option>
-                        <option value="B+">B+</option> <option value="B-">B-</option>
-                        <option value="O+">O+</option> <option value="O-">O-</option>
-                        <option value="AB+">AB+</option> <option value="AB-">AB-</option>
-                    </select>
-                </div>
-
-                <div class="form-group full-width">
-                    <label>વ્યક્તિનો ફોટો (Ultra HD Enhancer સાથે)</label>
-                    <input type="file" id="photoInput" accept="image/*" onchange="openCropper(event)">
-                </div>
-
-                <div class="form-group full-width">
-                    <button id="saveBtn" type="button" class="btn btn-save" onclick="saveRecord()"><i class="fa-solid fa-floppy-disk"></i> કાર્ડ સેવ કરો (Save Record)</button>
-                    <button type="button" class="btn btn-clear" onclick="clearForm()"><i class="fa-solid fa-broom"></i> નવું ફોર્મ ભરો (Clear Form)</button>
-                </div>
-            </div>
-
-            <!-- Live Preview -->
-            <div class="preview-panel">
-                
-                <!-- Wrapper for Zooming the Card -->
-                <div class="card-scaler" id="card-scaler-box">
-                    <div class="id-card" id="print-card">
-                        <div class="card-header">
-                            <h2>શ્રી બત્રીસી જૈન કો-ઓ.એજ્યુકેશન સોસાયટી લિમિટેડ</h2>
-                            <p class="address">શેઠ શ્રી હીરાલાલ હરગોવનદાસ બત્રીસી હોલ, આર.ટી.ઓ સર્કલ પાસે, સુભાષબ્રિજ, કલેક્ટર કચેરી, અમદાવાદ - ૩૮૦૦૨૭</p>
-                            <p class="contact">ફોન: ૦૭૯-૨૭૫૫૭૬૬૮ &nbsp;|&nbsp; મોબાઇલ: +૯૧ ૯૫૮૬૪ ૨૩૨૩૨ &nbsp;|&nbsp; ઇમેઇલ: 32cedusociety@gmail.com</p>
-                        </div>
-                        <div class="card-body">
-                            <div class="logo-box">
-                                <img id="img-logo" src="logo.png" onerror="this.style.display='none'">
-                            </div>
-                            <!-- UPDATED SECTION: Labels in Gujarati as requested + Uniform Size + KAP_36 Font -->
-                            <div class="details-box">
-                                <div class="detail-item"><i class="fa-solid fa-id-card detail-icon"></i><span class="detail-label">સભ્ય નંબર</span> <span class="detail-value"><span>:</span> <span id="val-memberNo">XXXX</span></span></div>
-                                <div class="detail-item"><i class="fa-solid fa-user detail-icon"></i><span class="detail-label">પૂરું નામ</span> <span class="detail-value"><span>:</span> <span id="val-name">XXXX XXXX</span></span></div>
-                                <div class="detail-item"><i class="fa-solid fa-location-dot detail-icon"></i><span class="detail-label">સરનામું</span> <span class="detail-value"><span>:</span> <span id="val-address">XXXX XXXX XXXX</span></span></div>
-                                <div class="detail-item"><i class="fa-solid fa-house detail-icon"></i><span class="detail-label">મૂળ વતન</span> <span class="detail-value"><span>:</span> <span id="val-hometown">XXXX</span></span></div>
-                                <div class="detail-item"><i class="fa-solid fa-calendar-days detail-icon"></i><span class="detail-label">જન્મ તારીખ</span> <span class="detail-value"><span>:</span> <span id="val-dob">XX/XX/XXXX</span></span></div>
-                                <div class="detail-item"><i class="fa-solid fa-phone detail-icon"></i><span class="detail-label">મોબાઇલ નંબર</span> <span class="detail-value"><span>:</span> <span id="val-mobile">XXXXX XXXXX</span></span></div>
-                                <div class="detail-item"><i class="fa-solid fa-droplet detail-icon"></i><span class="detail-label">બ્લડ ગ્રુપ</span> <span class="detail-value"><span>:</span> <span id="val-bloodgroup">-</span></span></div>
-                            </div>
-                            <div class="photo-box">
-                                <img id="img-photo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" alt="Photo">
-                            </div>
-                        </div>
-                        <div class="card-footer">
-                            <div class="sign-block left">
-                                <img id="img-sign1" src="sign1.png" onerror="this.style.display='none'">
-                                <p>સંદીપ એમ. શાહ <span>- કન્વીનર</span></p>
-                            </div>
-                            <div class="sign-block right">
-                                <img id="img-sign2" src="sign2.png" onerror="this.style.display='none'">
-                                <p>મયંક આર. શાહ <span>- મંત્રી</span></p>
-                            </div>
-                        </div>
-                    </div>
-                </div> <!-- End Scaler -->
-
-                <div class="btn-group">
-                    <button type="button" class="btn btn-print" onclick="printCard()"><i class="fa-solid fa-print"></i> ડેસ્કટોપ પ્રિન્ટ (Desktop)</button>
-                    <!-- મોબાઈલ માટે નવું બટન -->
-                    <button type="button" class="btn btn-download-card" onclick="downloadIndividualCardPDF()"><i class="fa-solid fa-download"></i> મોબાઈલમાં PDF ડાઉનલોડ</button>
-                </div>
-                <span style="font-size: 13.5px; font-weight: 600; color: #475569; margin-top: 5px; text-align: center;">
-                    * Exact Print Size: 85.6mm × 54mm (CR80)<br>
-                    <small>મોબાઈલથી પ્રિન્ટ/શેર કરવા માટે 'PDF ડાઉનલોડ' નો ઉપયોગ કરો.</small>
-                </span>
-            </div>
-        </div>
-
-        <!-- Saved Records Database Table -->
-        <div class="table-container">
-            <div class="table-header-row">
-                <h2 class="table-title"><i class="fa-solid fa-database"></i> સેવ કરેલા સભ્યોની યાદી</h2>
-                
-                <div class="action-group-right">
-                    <!-- Export All Buttons -->
-                    <div class="export-btns">
-                        <button class="btn-excel" onclick="exportToExcel()"><i class="fa-solid fa-file-excel"></i> બધું Excel</button>
-                        <button class="btn-pdf" onclick="exportToPDF()"><i class="fa-solid fa-file-pdf"></i> બધું PDF</button>
-                    </div>
-
-                    <div class="search-box">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="searchInput" placeholder="નામ અથવા મોબાઈલ નંબરથી સર્ચ..." onkeyup="searchRecords()">
-                    </div>
-                </div>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>સભ્ય નં.</th>
-                        <th>પૂરું નામ</th>
-                        <th>મોબાઇલ નંબર</th>
-                        <th>મૂળ વતન</th> 
-                        <th>તારીખ અને સમય</th> 
-                        <th>એક્શન (Actions)</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <!-- Records will load here -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- 3. CROP & ENHANCE MODAL -->
-    <div id="cropModal" class="crop-modal">
-        <div class="crop-container">
-            <h3><i class="fa-solid fa-crop-simple"></i> ફોટો સેટ કરો</h3>
-            <div class="img-crop-area">
-                <img id="imageToCrop" src="">
-            </div>
-            <div class="crop-btns">
-                <button class="btn-crop-cancel" onclick="closeCropper()">Cancel</button>
-                <button class="btn-crop-save" onclick="applyCropAndEnhance()"><i class="fa-solid fa-wand-magic-sparkles"></i> Crop & Enhance HD</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // ==============================================================
-        // 0. FIREBASE SETUP & CONFIGURATION
-        // ==============================================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyDbZ4T8264CDQ5LSoH_4L0luB5VKQbiqkU",
-            authDomain: "batrisi-latest-app.firebaseapp.com",
-            projectId: "batrisi-latest-app",
-            storageBucket: "batrisi-latest-app.firebasestorage.app",
-            messagingSenderId: "175592360155",
-            appId: "1:175592360155:web:ba95f9aba4558fda9d64fe",
-            measurementId: "G-5N91PLG8LB"
-        };
+        await triggerOneSignalBroadcastSecure(title, message);
         
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        await db.collection('notifications').add({
+            target: "all", title: title, message: message, type: "broadcast",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(), read: false
+        });
+        showToast("Broadcast Sent to All ✅");
+        closeModal('modal-send-notification');
+    }
 
-        // ==============================================================
-        // 1. LOGIN, SECURITY & REMEMBER ME SYSTEM
-        // ==============================================================
-        function togglePassword() {
-            const pwdInput = document.getElementById('loginPwd');
-            const toggleIcon = document.getElementById('toggleEye');
-            if (pwdInput.type === 'password') {
-                pwdInput.type = 'text'; toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
-            } else {
-                pwdInput.type = 'password'; toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
+    // ================= PERSONAL FCM NOTIFICATIONS =================
+    async function requestPushPermission() {
+        if (!firebase.messaging.isSupported() || !currentUser) return;
+        try {
+            const messaging = firebase.messaging();
+            const token = await messaging.getToken({ vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I' });
+            if (token) {
+                await db.collection('users').doc(currentUser.id).set({ fcmToken: token, role: currentUser.role }, { merge: true });
+                console.log("FCM Token Updated.");
             }
-        }
+        } catch (e) { console.log("Personal Push Denied."); }
+    }
 
-        function performLogin() {
-            const userId = document.getElementById('loginId').value.trim();
-            const userPwd = document.getElementById('loginPwd').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
-            const errorMsg = document.getElementById('login-error');
+    async function triggerPush(targetToken, title, body) {
+        const params = new URLSearchParams();
+        params.append('action', 'send_token');
+        params.append('target', targetToken);
+        params.append('title', title);
+        params.append('body', body);
+        await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+    }
 
-            if (userId === "Batrisi" && userPwd === "Bat@3232") {
-                sessionStorage.setItem('isSecuredLoggedIn', 'true');
-                if (rememberMe) {
-                    localStorage.setItem('savedUserId', userId);
-                    localStorage.setItem('savedUserPwd', userPwd);
-                    localStorage.setItem('rememberPwdChecked', 'true');
-                } else {
-                    localStorage.removeItem('savedUserId'); localStorage.removeItem('savedUserPwd'); localStorage.removeItem('rememberPwdChecked');
-                }
+    // ================= CORE APP FUNCTIONS (ALL RESTORED) =================
+    async function fetchRequests(role) {
+        showToast("Fetching Latest Data... ⏳");
+        let q = db.collection('requests');
+        if (role === 'Member') q = q.where('memberId', '==', String(currentUser.id));
+        else if (role === 'Committee') q = q.where('assignedTo', '==', String(currentUser.name));
+        
+        const snap = await q.get();
+        requests = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        requests.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
 
-                document.getElementById('login-wrapper').style.display = 'none';
-                document.getElementById('app-wrapper').style.display = 'block';
-                errorMsg.style.display = 'none';
-                initializeSystem();
-            } else {
-                errorMsg.style.display = 'block';
-            }
-        }
+        if(role === 'Admin') renderAdminDashboard();
+        else if(role === 'Member') renderMemberDashboard();
+        else if(role === 'Committee') renderCommitteeInbox();
+    }
 
-        function handleEnter(e) { if (e.key === 'Enter') performLogin(); }
+    function renderAdminDashboard() {
+        switchScreen('screen-admin');
+        const tbody = document.getElementById('admin-tbody');
+        tbody.innerHTML = requests.map(r => `
+            <tr>
+                <td><b>${r.token||'-'}</b></td>
+                <td><span class="badge ${r.status.toLowerCase()}">${r.status}</span></td>
+                <td>${r.patientName}<br><small>${r.memberName}</small></td>
+                <td><button class="btn-success" style="padding:4px 8px; font-size:11px;" onclick="approveRequest('${r.id}')">Appr</button></td>
+            </tr>
+        `).join('');
+        
+        let tOrig = 0, tPaid = 0;
+        requests.forEach(r => { if(r.status === 'Completed'){ tOrig += parseFloat(r.originalAmount||0); tPaid += parseFloat(r.finalAmount||0); } });
+        document.getElementById('admin-total-original').innerText = `₹ ${tOrig.toFixed(2)}`;
+        document.getElementById('admin-total-final').innerText = `₹ ${tPaid.toFixed(2)}`;
+    }
 
-        function logoutApp() {
-            sessionStorage.removeItem('isSecuredLoggedIn');
-            window.location.reload(); 
-        }
+    function renderMemberDashboard() {
+        switchScreen('screen-member');
+        renderMemberApply();
+    }
 
-        // ==============================================================
-        // 2. FORM PREVIEW 
-        // ==============================================================
-        let currentPhotoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-
-        function updateField(inputId, targetId) {
-            let val = document.getElementById(inputId).value;
-            let displayVal = val.trim() !== "" ? val : "XXXX";
-            if (inputId === 'dob' && !val) displayVal = "XX/XX/XXXX";
-            if (inputId === 'bloodgroup' && (!val || val === '-')) displayVal = "-";
-            document.getElementById(targetId).innerText = displayVal;
-        }
-
-        // ==============================================================
-        // 3. IMAGE CROPPER & ULTRA HD ENHANCER LOGIC
-        // ==============================================================
-        let cropper;
-
-        function openCropper(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    let image = document.getElementById('imageToCrop');
-                    image.src = e.target.result;
-                    
-                    document.getElementById('cropModal').style.display = 'flex';
-
-                    if(cropper) { cropper.destroy(); }
-                    cropper = new Cropper(image, {
-                        aspectRatio: 3 / 4,
-                        viewMode: 1,
-                        autoCropArea: 1,
-                        background: false
-                    });
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function closeCropper() {
-            document.getElementById('cropModal').style.display = 'none';
-            if(cropper) { cropper.destroy(); cropper = null; }
-            document.getElementById('photoInput').value = ""; 
-        }
-
-        function applyCropAndEnhance() {
-            if (!cropper) return;
-
-            let croppedCanvas = cropper.getCroppedCanvas({
-                width: 600,
-                height: 800,
-                imageSmoothingEnabled: true,
-                imageSmoothingQuality: 'high'
-            });
-
-            let enhancedCanvas = document.createElement('canvas');
-            enhancedCanvas.width = croppedCanvas.width;
-            enhancedCanvas.height = croppedCanvas.height;
-            let ctx = enhancedCanvas.getContext('2d');
-
-            ctx.filter = 'contrast(115%) saturate(110%) brightness(105%)';
-            ctx.drawImage(croppedCanvas, 0, 0);
-
-            currentPhotoBase64 = enhancedCanvas.toDataURL('image/jpeg', 0.95);
-            document.getElementById('img-photo').src = currentPhotoBase64;
-
-            closeCropper();
-        }
-
-        // ==============================================================
-        // 4. GOOGLE TRANSLITERATION & GUJARATI DIGITS
-        // ==============================================================
-        const engToGujDigits = {
-            '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪',
-            '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯'
+    function renderMemberApply() {
+        let comOptions = committeeList.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        document.getElementById('member-content-area').innerHTML = `
+            <div class="card"><h2>Medical Form</h2>
+                <form id="req-form">
+                    <div class="form-group"><label>Patient Name</label><input type="text" id="p-name" placeholder="FULL NAME" required></div>
+                    <div class="form-group"><label>Relationship</label><select id="p-rel"><option value="Self">Self</option><option value="Son">Son</option><option value="Wife">Wife</option><option value="Father">Father</option></select></div>
+                    <div class="form-group"><label>Assign to Committee</label><select id="p-assign"><option value="">Select Member...</option>${comOptions}</select></div>
+                    <button type="submit" class="btn-gradient">Submit Request</button>
+                </form>
+            </div>`;
+        document.getElementById('req-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = generateId();
+            await db.collection('requests').doc(id).set({ id, memberId: currentUser.id, memberName: currentUser.name, patientName: document.getElementById('p-name').value, assignedTo: document.getElementById('p-assign').value, status: 'Pending', timestamp: Date.now() });
+            showToast("Submitted ✅"); fetchRequests('Member');
         };
+    }
 
-        async function transliterateWord(word) {
-            if (!/[a-zA-Z]/.test(word)) return word; 
-            try {
-                const url = `https://inputtools.google.com/request?text=${encodeURIComponent(word)}&itc=gu-t-i0-und&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8&app=id_card_app`;
-                let response = await fetch(url);
-                let data = await response.json();
-                if (data[0] === 'SUCCESS') return data[1][0][1][0];
-            } catch (error) { console.error("Transliteration Error:", error); }
-            return word;
+    async function approveRequest(id) {
+        const token = "T-" + Math.floor(1000 + Math.random()*9000);
+        await db.collection('requests').doc(id).update({ status: 'Approved', token: token });
+        const req = requests.find(r => r.id === id);
+        const user = await db.collection('users').doc(req.memberId).get();
+        if(user.exists && user.data().fcmToken) triggerPush(user.data().fcmToken, "Approved ✅", "Your Token generated: " + token);
+        fetchRequests('Admin');
+    }
+
+    // ================= UTILS & AUTH =================
+    function showToast(m, t='success') { const el = document.getElementById('toast'); document.getElementById('toast-msg').innerText = m; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 3000); }
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function switchScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    function logout() { localStorage.removeItem('sbj_user'); location.reload(); }
+    function generateId() { return Math.random().toString(36).substr(2, 9).toUpperCase(); }
+
+    document.getElementById('login-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const role = document.getElementById('login-role').value;
+        const id = document.getElementById('login-id').value.toUpperCase();
+        const pass = document.getElementById('login-password').value;
+        let auth = false;
+        
+        if(role === 'Admin' && id === 'KIRAN.DESAI3667@GMAIL.COM' && pass === 'Kiran@3667') { auth = true; currentUser = {id, role, name: 'Admin'}; }
+        else if(role === 'Member') {
+            const d = await db.collection('members').doc(id).get();
+            if(d.exists && pass === (d.data().password || 'Bat@123')) { auth = true; currentUser = { ...d.data(), id, role }; }
         }
+        
+        if(auth) { localStorage.setItem('sbj_user', JSON.stringify(currentUser)); location.reload(); }
+        else showToast("Invalid Login Credentials", "error");
+    };
 
-        async function handleTransliteration(elementId, event) {
-            const isEnabled = document.getElementById('enableTransliteration').checked;
-            if (!isEnabled) return; 
-
-            if (event.code === 'Space' || event.key === ' ' || event.keyCode === 32) {
-                const el = document.getElementById(elementId);
-                const cursorPosition = el.selectionStart;
-                const text = el.value;
-                
-                let startPos = cursorPosition - 2; 
-                while (startPos >= 0 && text[startPos] !== ' ' && text[startPos] !== '\n') startPos--;
-                startPos++; 
-                
-                const wordToConvert = text.substring(startPos, cursorPosition - 1);
-                
-                if (/[a-zA-Z]/.test(wordToConvert)) {
-                    const gujaratiWord = await transliterateWord(wordToConvert);
-                    if (gujaratiWord !== wordToConvert) {
-                        const currentText = el.value;
-                        const currentCursor = el.selectionStart;
-                        const newText = currentText.substring(0, startPos) + gujaratiWord + currentText.substring(startPos + wordToConvert.length);
-                        el.value = newText;
-                        
-                        const diffLength = gujaratiWord.length - wordToConvert.length;
-                        if (currentCursor > startPos) el.selectionStart = el.selectionEnd = currentCursor + diffLength;
-                        updateField(elementId, 'val-' + elementId);
-                    }
-                }
-            }
+    (async function init() {
+        if(currentUser) {
+            requestPushPermission();
+            fetchRequests(currentUser.role);
         }
-
-        function handleNumberConversion(elementId) {
-            const isEnabled = document.getElementById('enableTransliteration').checked;
-            if (!isEnabled) return;
-
-            const el = document.getElementById(elementId);
-            const originalText = el.value;
-            const cursorPosition = el.selectionStart;
-
-            if (/[0-9]/.test(originalText)) {
-                const newText = originalText.replace(/[0-9]/g, match => engToGujDigits[match]);
-                el.value = newText;
-                el.selectionStart = el.selectionEnd = cursorPosition;
-                updateField(elementId, 'val-' + elementId);
-            }
-        }
-
-        function setupTransliteration(elementId) {
-            const el = document.getElementById(elementId);
-            if (el) {
-                el.addEventListener('keyup', (e) => handleTransliteration(elementId, e));
-                el.addEventListener('input', () => handleNumberConversion(elementId));
-            }
-        }
-
-        // ==============================================================
-        // 5. FIREBASE CLOUD DATABASE OPERATIONS
-        // ==============================================================
-        let records = [];
-
-        function getCleanDateStr(timestamp) {
-            if(!timestamp) return "-";
-            let d = new Date(timestamp);
-            let day = d.getDate().toString().padStart(2, '0');
-            let month = (d.getMonth() + 1).toString().padStart(2, '0');
-            let year = d.getFullYear();
-            let hours = d.getHours();
-            let minutes = d.getMinutes().toString().padStart(2, '0');
-            let ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12; hours = hours ? hours : 12; 
-            return `${day}/${month}/${year}, ${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
-        }
-
-        function formatDateTimeHTML(timestamp) {
-            if(!timestamp) return "-";
-            return `<i class="fa-regular fa-clock"></i> ${getCleanDateStr(timestamp)}`;
-        }
-
-        function saveRecord() {
-            let docId = document.getElementById('recordId').value;
-            let memberNo = document.getElementById('memberNo').value;
-            let name = document.getElementById('name').value;
-            
-            if(memberNo.trim() === "" || name.trim() === "") { 
-                alert("કૃપા કરીને સભ્ય નંબર અને પૂરું નામ દાખલ કરો!"); 
-                return; 
-            }
-
-            let saveBtn = document.getElementById('saveBtn');
-            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> સેવ થઇ રહ્યું છે...';
-            saveBtn.disabled = true;
-
-            let recordData = {
-                memberNo: memberNo,
-                name: name,
-                address: document.getElementById('address').value,
-                hometown: document.getElementById('hometown').value,
-                dob: document.getElementById('dob').value,
-                mobile: document.getElementById('mobile').value,
-                bloodgroup: document.getElementById('bloodgroup').value,
-                photo: currentPhotoBase64
-            };
-
-            if(docId) {
-                recordData.updatedAt = Date.now();
-                db.collection("idCards").doc(docId).update(recordData)
-                .then(() => {
-                    alert("ડેટા સફળતાપૂર્વક અપડેટ થઈ ગયો છે!");
-                    clearForm(); resetBtn(saveBtn);
-                }).catch(err => { alert("Error: " + err.message); resetBtn(saveBtn); });
-            } else {
-                recordData.timestamp = Date.now();
-                db.collection("idCards").add(recordData)
-                .then(() => {
-                    alert("ડેટા સફળતાપૂર્વક સેવ થઈ ગયો છે!");
-                    clearForm(); resetBtn(saveBtn);
-                }).catch(err => { alert("Error: " + err.message); resetBtn(saveBtn); });
-            }
-        }
-
-        function resetBtn(btn) {
-            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> કાર્ડ સેવ કરો (Save Record)';
-            btn.disabled = false;
-        }
-
-        function fetchFirebaseData() {
-            db.collection("idCards").orderBy("timestamp", "desc").onSnapshot((querySnapshot) => {
-                records = [];
-                querySnapshot.forEach((doc) => {
-                    let data = doc.data(); data.docId = doc.id; records.push(data);
-                });
-                searchRecords(); 
-            }, (error) => {
-                console.error("Firebase Error: ", error); alert("ડેટાબેઝ માંથી ડેટા લાવવામાં ભૂલ આવી છે!");
-            });
-        }
-
-        function searchRecords() {
-            let query = document.getElementById('searchInput').value.toLowerCase().trim();
-            let filteredRecords = records.filter(rec => {
-                let nameMatch = rec.name.toLowerCase().includes(query);
-                let mobileMatch = (rec.mobile || "").includes(query);
-                return nameMatch || mobileMatch;
-            });
-            loadTable(filteredRecords);
-        }
-
-        function loadTable(dataArray) {
-            let tbody = document.getElementById('tableBody');
-            tbody.innerHTML = "";
-            
-            if (!dataArray || dataArray.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 25px; color: #64748b; font-weight: 500;">કોઈ રેકોર્ડ મળ્યો નથી!</td></tr>`;
-                return;
-            }
-
-            dataArray.forEach(rec => {
-                let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${rec.memberNo || "-"}</td>
-                    <td>${rec.name || "-"}</td>
-                    <td>${rec.mobile || "-"}</td>
-                    <td>${rec.hometown || "-"}</td>
-                    <td><span class="date-badge">${formatDateTimeHTML(rec.timestamp)}</span></td>
-                    <td class="action-btns">
-                        <button type="button" class="btn-sm btn-print-sm" title="Print" onclick="printFromTable('${rec.docId}')"><i class="fa-solid fa-print"></i></button>
-                        <button type="button" class="btn-sm btn-download-sm" title="Download PDF (Mobile)" onclick="downloadIndividualCardPDF('${rec.docId}')"><i class="fa-solid fa-download"></i></button>
-                        <button type="button" class="btn-sm btn-edit" title="Edit" onclick="editRecord('${rec.docId}')"><i class="fa-solid fa-pen"></i></button>
-                        <button type="button" class="btn-sm btn-delete" title="Delete" onclick="deleteRecord('${rec.docId}')"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function editRecord(docId) {
-            let rec = records.find(r => r.docId === docId);
-            if(!rec) return;
-
-            document.getElementById('recordId').value = rec.docId; 
-            document.getElementById('memberNo').value = rec.memberNo || "";
-            document.getElementById('name').value = rec.name || "";
-            document.getElementById('address').value = rec.address || "";
-            document.getElementById('hometown').value = rec.hometown || "";
-            document.getElementById('dob').value = rec.dob || "";
-            document.getElementById('mobile').value = rec.mobile || "";
-            document.getElementById('bloodgroup').value = rec.bloodgroup || "-";
-            
-            currentPhotoBase64 = rec.photo;
-            document.getElementById('img-photo').src = currentPhotoBase64;
-
-            updateField('memberNo', 'val-memberNo'); updateField('name', 'val-name');
-            updateField('address', 'val-address'); updateField('hometown', 'val-hometown');
-            updateField('dob', 'val-dob'); updateField('mobile', 'val-mobile');
-            updateField('bloodgroup', 'val-bloodgroup');
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function deleteRecord(docId) {
-            if(confirm("શું તમે ખરેખર આ રેકોર્ડ ડીલીટ કરવા માંગો છો? આ કાયમી ધોરણે ડીલીટ થઇ જશે!")) {
-                db.collection("idCards").doc(docId).delete().catch((error) => console.error("Error removing document: ", error));
-            }
-        }
-
-        function clearForm() {
-            document.getElementById('recordId').value = ""; 
-            document.getElementById('memberNo').value = ""; document.getElementById('name').value = "";
-            document.getElementById('address').value = ""; document.getElementById('hometown').value = "";
-            document.getElementById('dob').value = ""; document.getElementById('mobile').value = "";
-            document.getElementById('bloodgroup').value = "-"; document.getElementById('photoInput').value = "";
-            document.getElementById('searchInput').value = "";
-            
-            currentPhotoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-            document.getElementById('img-photo').src = currentPhotoBase64;
-            
-            ['val-memberNo', 'val-name', 'val-address', 'val-hometown', 'val-mobile'].forEach(id => document.getElementById(id).innerText = "XXXX");
-            document.getElementById('val-dob').innerText = "XX/XX/XXXX"; document.getElementById('val-bloodgroup').innerText = "-";
-        }
-
-        // ==============================================================
-        // 6. EXCEL & PDF EXPORT LOGIC (BULK)
-        // ==============================================================
-        function exportToExcel() {
-            if(records.length === 0) { alert("કોઈ ડેટા ઉપલબ્ધ નથી!"); return; }
-            
-            let exportData = records.map(r => ({
-                "સભ્ય નં.": r.memberNo || "-", "પૂરું નામ": r.name || "-", "સરનામું": r.address || "-",
-                "મૂળ વતન": r.hometown || "-", "જન્મ તારીખ": r.dob || "-", "મોબાઇલ નંબર": r.mobile || "-",
-                "બ્લડ ગ્રુપ": r.bloodgroup || "-", "બનાવ્યા તારીખ અને સમય": getCleanDateStr(r.timestamp)
-            }));
-
-            let ws = XLSX.utils.json_to_sheet(exportData);
-            let wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Members Data");
-            XLSX.writeFile(wb, "Batrisi_Jain_Members.xlsx");
-        }
-
-        function exportToPDF() {
-            if(records.length === 0) { alert("કોઈ ડેટા ઉપલબ્ધ નથી!"); return; }
-            
-            let tempDiv = document.createElement('div');
-            tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.top = '0';
-            tempDiv.style.background = 'white'; tempDiv.style.padding = '30px'; tempDiv.style.width = '1000px';
-            
-            let html = `<h2 style="text-align:center; color:#0f3460; font-family: sans-serif;">શ્રી બત્રીસી જૈન - સેવ કરેલા સભ્યોની યાદી</h2>`;
-            html += `<table style="width:100%; border-collapse:collapse; font-family: sans-serif; text-align:left;" border="1">`;
-            html += `<tr style="background:#f1f5f9; color:#0f172a;"><th style="padding:10px;">સભ્ય નં.</th><th style="padding:10px;">પૂરું નામ</th><th style="padding:10px;">મોબાઇલ નંબર</th><th style="padding:10px;">મૂળ વતન</th><th style="padding:10px;">બ્લડ ગ્રુપ</th><th style="padding:10px;">બનાવ્યા તારીખ</th></tr>`;
-                     
-            records.forEach(r => {
-                html += `<tr>
-                            <td style="padding:10px; color:#334155;">${r.memberNo || "-"}</td><td style="padding:10px; color:#334155;">${r.name || "-"}</td>
-                            <td style="padding:10px; color:#334155;">${r.mobile || "-"}</td><td style="padding:10px; color:#334155;">${r.hometown || "-"}</td>
-                            <td style="padding:10px; color:#334155;">${r.bloodgroup || "-"}</td><td style="padding:10px; color:#334155;">${getCleanDateStr(r.timestamp)}</td>
-                         </tr>`;
-            });
-            html += `</table>`;
-            tempDiv.innerHTML = html; document.body.appendChild(tempDiv);
-
-            html2canvas(tempDiv, { scale: 2, useCORS: true }).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
-                const { jsPDF } = window.jspdf; const pdf = new jsPDF('p', 'mm', 'a4');
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
-                pdf.save("Batrisi_Jain_Members.pdf"); document.body.removeChild(tempDiv);
-            });
-        }
-
-        // ==============================================================
-        // 7. DESKTOP PRINT LOGIC (Native HTML Print)
-        // ==============================================================
-        function printFromTable(docId) {
-            editRecord(docId); setTimeout(printCard, 800); 
-        }
-
-        function printCard() {
-            const cardElement = document.getElementById('print-card');
-            const cardHTML = cardElement.outerHTML;
-            
-            let printWin = window.open('', '_blank');
-            let styles = '';
-            for (let styleSheet of document.styleSheets) {
-                try { for (let rule of styleSheet.cssRules) { styles += rule.cssText + '\n'; } } catch(e) {}
-            }
-
-            printWin.document.write(`
-                <!DOCTYPE html>
-                <html lang="gu">
-                <head><title>Print ID Card</title>
-                <link href="https://fonts.googleapis.com/css2?family=Mogra&family=Noto+Sans+Gujarati:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-                <style>
-                    ${styles}
-                    @media print {
-                        @page { size: 85.6mm 54mm landscape; margin: 0; }
-                        body { margin: 0; display: flex; justify-content: center; align-items: center; background: white; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;}
-                        #print-card { transform: scale(0.755) !important; transform-origin: center center !important; border: none !important; box-shadow: none !important; margin: 0 !important; }
-                    }
-                    body { background: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-                    #print-card { transform: scale(1); } 
-                </style>
-                </head><body>
-                    ${cardHTML}
-                    <script>
-                        window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 800); };
-                    <\/script>
-                </body></html>
-            `);
-            printWin.document.close();
-        }
-
-        // ==============================================================
-        // 8. MOBILE PDF DOWNLOAD LOGIC (Individual ID Card)
-        // ==============================================================
-        function downloadIndividualCardPDF(docId = null) {
-            if (docId) {
-                editRecord(docId); // પહેલા કાર્ડનો ડેટા પ્રિવ્યૂમાં લાવો
-            }
-
-            // ડેટા લોડ થવા માટે થોડી વાર રાહ જુઓ
-            setTimeout(() => {
-                const card = document.getElementById('print-card');
-                const scalerBox = document.getElementById('card-scaler-box');
-                
-                // કાર્ડને પર્ફેક્ટ સાઈઝમાં ડાઉનલોડ કરવા માટે તેનું સ્કેલિંગ હંગામી ધોરણે કાઢી નાખીએ
-                scalerBox.style.transform = 'scale(1)';
-
-                // html2canvas નો ઉપયોગ કરીને હાઇ રિઝોલ્યુશન (scale: 4) ઈમેજ બનાવીએ
-                html2canvas(card, { scale: 4, useCORS: true, backgroundColor: "#ffffff" }).then(canvas => {
-                    const imgData = canvas.toDataURL('image/png'); 
-                    const { jsPDF } = window.jspdf;
-                    
-                    // CR80 Card Size (85.6mm x 54mm) નું PDF બનાવીએ
-                    const pdf = new jsPDF({
-                        orientation: 'landscape',
-                        unit: 'mm',
-                        format: [85.6, 54]
-                    });
-                    
-                    pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 54);
-                    
-                    let memberName = document.getElementById('val-name').innerText.trim();
-                    if(memberName === "XXXX XXXX" || !memberName) memberName = "ID_Card";
-                    
-                    pdf.save(memberName + "_ID_Card.pdf");
-                    
-                    // ડાઉનલોડ થયા પછી પ્રિવ્યૂની સાઈઝ પાછી 1.25x કરી દઈએ 
-                    scalerBox.style.transform = 'scale(1.25)';
-                }).catch(err => {
-                    alert("PDF બનાવવામાં એરર: " + err);
-                    scalerBox.style.transform = 'scale(1.25)';
-                });
-            }, docId ? 800 : 100); 
-        }
-
-        // ==============================================================
-        // 9. INITIALIZATION
-        // ==============================================================
-        function initializeSystem() {
-            fetchFirebaseData(); 
-            setupTransliteration('memberNo'); setupTransliteration('name');
-            setupTransliteration('address'); setupTransliteration('hometown');
-            setupTransliteration('dob'); setupTransliteration('mobile');
-        }
-
-        window.onload = function() {
-            if (localStorage.getItem('rememberPwdChecked') === 'true') {
-                document.getElementById('loginId').value = localStorage.getItem('savedUserId') || '';
-                document.getElementById('loginPwd').value = localStorage.getItem('savedUserPwd') || '';
-                document.getElementById('rememberMe').checked = true;
-            }
-
-            const isLoggedIn = sessionStorage.getItem('isSecuredLoggedIn');
-            if (isLoggedIn === 'true') {
-                document.getElementById('login-wrapper').style.display = 'none';
-                document.getElementById('app-wrapper').style.display = 'block';
-                initializeSystem();
-            } else {
-                document.getElementById('login-wrapper').style.display = 'flex';
-                document.getElementById('app-wrapper').style.display = 'none';
-            }
-        };
-    </script>
+    })();
+</script>
 </body>
 </html>
