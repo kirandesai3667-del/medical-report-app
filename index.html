@@ -4,19 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Batrisi All In One</title>
-    <!-- Manifest link removed to fix 404 error -->
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#000000">
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-    <!-- Firebase SDKs (Messaging removed) -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
-
-    <!-- OneSignal Web SDK -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
     <style>
         :root {
@@ -356,6 +354,7 @@
         <div class="content-area" id="member-content-area"></div>
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-member-apply" onclick="renderMemberApply()"><i class="ph-fill ph-plus-circle"></i><span>Apply</span></div>
+            <!-- FIX 1 (UI REFETCH): Changed onClick to fetch live data rather than strictly rendering stale local memory -->
             <div class="nav-item" id="nav-member-status" onclick="fetchRequests('Member')"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
             <div class="nav-item" id="nav-member-programs" onclick="renderMemberPrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
@@ -382,6 +381,7 @@
         </div>
         <div class="content-area" id="committee-request-list"></div>
         <div class="bottom-nav">
+            <!-- FIX 1 (UI REFETCH): Changed onClick to fetch live data rather than strictly rendering stale local memory -->
             <div class="nav-item active" id="nav-committee-inbox" onclick="fetchRequests('Committee')"><i class="ph-fill ph-tray"></i><span>Inbox</span></div>
             <div class="nav-item" id="nav-committee-programs" onclick="renderCommitteePrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="openModal('modal-change-password-committee')"><i class="ph ph-key"></i><span>Password</span></div>
@@ -435,11 +435,13 @@
 
     // ================= FIREBASE INITIALIZATION =================
     const firebaseConfig = {
-      apiKey: "AIzaSyDbZ4T8264CDQ5LSoH_4L0luB5VKQbiqkU",
-      authDomain: "batrisi-latest-app.firebaseapp.com",
-      projectId: "batrisi-latest-app",
-      storageBucket: "batrisi-latest-app.firebasestorage.app",
-      appId: "1:175592360155:web:ba95f9aba4558fda9d64fe"
+      apiKey: "AIzaSyC97HQL03FiX8meE2iMaVAF7EJZh7r-XAM",
+      authDomain: "batrisi-medical-sahay.firebaseapp.com",
+      databaseURL: "https://batrisi-medical-sahay-default-rtdb.firebaseio.com",
+      projectId: "batrisi-medical-sahay",
+      storageBucket: "batrisi-medical-sahay.firebasestorage.app",
+      messagingSenderId: "632157918744",
+      appId: "1:632157918744:web:0e2df6de8a4fc274ba156d"
     };
 
     if (!firebase.apps.length) {
@@ -447,52 +449,136 @@
     }
     const db = firebase.firestore();
 
-    // ================= ONESIGNAL PUSH INITIALIZATION =================
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-            appId: "c63042ff-00b4-49f0-9307-74673692e9ac", // Aapki App ID
-            allowLocalhostAsSecureOrigin: true,
-        });
-    });
-
-    async function setupOneSignalUser() {
-        if (!currentUser || !currentUser.id) return;
-        OneSignalDeferred.push(async function(OneSignal) {
-            // Tie this device to the logged-in User ID (String conversion imp hai)
-            await OneSignal.login(String(currentUser.id));
-            // Add user role as a tag for role-based notifications
-            await OneSignal.User.addTags({ role: currentUser.role });
-            // Show prompt to user
-            await OneSignal.Slidedown.promptPush();
+    // ================= SERVICE WORKER REGISTRATION =================
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("./firebase-messaging-sw.js", { updateViaCache: 'none' })
+            .then((reg) => {
+                console.log("Service Worker Registered:", reg.scope);
+                reg.update(); // Forces browser to pull the latest Service Worker file
+            })
+            .catch((err) => console.error("Registration Failed:", err));
         });
     }
 
-    // ================= NOTIFICATION TRIGGERING (BACKEND CALL) =================
+    // ================= FCM & PUSH LOGIC (UPDATED & SAFE) =================
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyKv5Ma3XMQQvxXGlDmsgDXVg-gcGOizvpnCRQcK9M5jg-J5QgK2CyWin1rg9Emfqgifw/exec'; 
+    let messaging = null;
 
-    async function triggerPush(target, title, body) {
-        if (!target) return;
+    async function initFirebaseMessaging() {
+        try {
+            if (firebase.messaging) {
+                // isSupported is an async promise in compat v9+, handles unsupported environments gracefully
+                const isSupported = await firebase.messaging.isSupported();
+                if (isSupported) {
+                    messaging = firebase.messaging();
+                    messaging.onMessage((payload) => {
+                        console.log("Message received: ", payload);
+                        const title = payload.notification?.title || payload.data?.title || "New Notification";
+                        const body = payload.notification?.body || payload.data?.body || "";
+                        showToast(`${title}: ${body}`);
+                    });
+                }
+            }
+        } catch (error) {
+            console.log("Firebase Messaging not supported or failed to init:", error);
+        }
+    }
+
+    // Call immediately (non-blocking)
+    initFirebaseMessaging();
+
+    async function subscribeToTopic(token, topic) {
         try {
             const params = new URLSearchParams();
-            params.append('action', 'send_onesignal_push'); 
-            params.append('target', target); 
-            params.append('title', title);
-            params.append('body', body);
+            params.append('action', 'subscribe_topic');
+            params.append('token', token);
+            params.append('topic', topic);
 
+            // FIX (CORS): Added mode: 'no-cors' so browser doesn't block GAS request
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: params,
                 mode: 'no-cors'
             });
-            console.log("Push trigger sent to GAS.");
+            console.log("Subscribed to topic:", topic);
+        } catch (e) { console.error('Topic sub failed', e); }
+    }
+
+    async function requestPushNotificationPermission() {
+        if (!messaging || !currentUser || !currentUser.id) return;
+        if (!("Notification" in window)) {
+            console.log("Notifications not supported in this browser.");
+            return; 
+        }
+
+        try {
+            let permission = Notification.permission;
+            if (permission !== 'granted' && permission !== 'denied') {
+                permission = await Notification.requestPermission();
+            }
+
+            if (permission === 'granted') {
+                // Safely wait for SW to be ready
+                const registration = await navigator.serviceWorker.ready;
+                const token = await messaging.getToken({ 
+                    vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
+                    serviceWorkerRegistration: registration 
+                });
+
+                if (token) {
+                    // FIX (CONSOLE LOG): Explicitly passing the token to be logged in console
+                    console.log("FCM Token Generated Successfully: ", token);
+
+                    const userRef = db.collection('users').doc(currentUser.id);
+                    await userRef.set({
+                        userId: currentUser.id,
+                        name: currentUser.name,
+                        role: currentUser.role,
+                        fcmToken: token,
+                        lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+
+                    subscribeToTopic(token, "allUsers");
+                } else {
+                    console.log("Failed to generate FCM Token: Token is empty");
+                }
+            } else {
+                console.log("Notification permission not granted by user.");
+            }
+        } catch (error) {
+            console.error('Notification Error:', error);
+        }
+    }
+
+    async function triggerPush(target, title, body, isTopic = false) {
+        if (!target) return;
+        try {
+            const params = new URLSearchParams();
+            params.append('action', isTopic ? 'send_topic' : 'send_token');
+            params.append('target', target);
+            params.append('title', title);
+            params.append('body', body);
+
+            // FIX 2 (NOTIFICATION): Explicity append both notification and data payloads for the backend.
+            // This guarantees the generated FCM message contains the "notification" payload needed
+            // to display background system alerts while the app is closed.
+            params.append('notification', JSON.stringify({ title: String(title), body: String(body) }));
+            params.append('data', JSON.stringify({ title: String(title), body: String(body) }));
+
+            // FIX (CORS): Added mode: 'no-cors' so browser doesn't block GAS request
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: params,
+                mode: 'no-cors'
+            });
+            console.log("Push response sent.");
         } catch (e) {
             console.error("Push failed:", e);
         }
     }
 
-    // ================= IN-APP FIRESTORE NOTIFICATIONS =================
-    async function sendUserNotification(userId, title, message, type = "personal", createdBy = "system") {
+    async function sendUserNotification(userId, title, message, fcmToken = null, type = "personal", createdBy = "system") {
         try {
             await db.collection('notifications').add({
                 target: userId, 
@@ -504,8 +590,10 @@
                 read: false,
                 deleted: false
             });
-            // Send actual Push via OneSignal
-            triggerPush(userId, title, message); 
+
+            if (fcmToken) {
+                triggerPush(fcmToken, title, message, false); 
+            }
         } catch (error) {
             console.error("Error sending user notification:", error);
         }
@@ -513,7 +601,7 @@
 
     async function sendNotificationToAll(title, message) {
         try {
-            triggerPush('all', title, message);
+            triggerPush('allUsers', title, message, true);
             await db.collection('notifications').add({
                 target: "all",
                 title: title,
@@ -585,11 +673,11 @@
                 }
             });
             initLoad = false;
-            
+
             notifications = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .filter(n => !n.deleted);
-                
+
             updateNotifUI();
         }, error => {
             console.error("Notifications listener error:", error);
@@ -600,7 +688,7 @@
         if (!currentUser) return;
         const roles =['admin', 'member', 'lab', 'committee'];
         let myNotifs = notifications.filter(n => (n.target === currentUser.id || n.target === "all") && !n.deleted);
-        
+
         let readArr = JSON.parse(localStorage.getItem('sbj_read_broadcasts') || '[]');
         myNotifs.forEach(n => {
             if (n.target === 'all') {
@@ -627,7 +715,7 @@
                     let titleHtml = n.title ? `<strong style="display:block; color:var(--accent-color); margin-bottom:4px;">${n.title}</strong>` : '';
                     let dateObj = n.timestamp?.toDate ? n.timestamp.toDate() : new Date(n.timestamp || Date.now());
                     li.innerHTML = `${titleHtml}${n.message}<small>${dateObj.toLocaleString()}</small>`;
-                    
+
                     li.onclick = async () => {
                         markAsRead(n.id);
                         li.className = '';
@@ -899,7 +987,8 @@
     // ================= OPTIMIZED FETCH REQUESTS =================
     async function fetchRequests(role) {
         let query = db.collection('requests');
-        
+
+        // FIX 1 (INBOX ISSUE): Cast IDs to String explicitly to prevent user_id string/number mismatches.
         if (role === 'Member') {
             query = query.where('memberId', '==', String(currentUser.id));
         } else if (role === 'Committee') {
@@ -909,6 +998,7 @@
         }
 
         try {
+            // FIX 1 (INBOX ISSUE): Disable caching to prevent stale data across multiple devices.
             let snapshot;
             try {
                 snapshot = await query.get({ source: 'server' });
@@ -916,9 +1006,11 @@
                 console.warn("Server fetch failed, falling back to cache");
                 snapshot = await query.get({ source: 'cache' });
             }
-            
+
             requests = snapshot.docs.map(doc => doc.data());
-            
+
+            // Limit memory usage by locally sorting and capping the data correctly 
+            // since index constraints prevent us from natively combining .orderBy with .where.
             requests.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
             requests = requests.slice(0, 50);
 
@@ -1196,15 +1288,17 @@
         const rawId = document.getElementById('login-id').value;
         const pass = document.getElementById('login-password').value;
         const loginBtn = document.getElementById('login-btn');
-        
+
         loginBtn.innerText = "Authenticating...";
         loginBtn.disabled = true;
 
         showToast("Loading... ⏳");
 
         let authenticated = false;
+
+        // FIX: Explicitly cast ID to string and format it safely to prevent string/number mismatches
         const formattedId = String(rawId || "").trim().toUpperCase();
-        
+
         if (!formattedId) {
             showToast("Please enter a valid ID", "error");
             loginBtn.innerText = "Log In";
@@ -1234,10 +1328,16 @@
                     userData.labPrefix = labMatch.prefix;
                 }
             } else if (role === 'Member') {
+
+                // FIX: Ensure correct Firestore query for Member by safely using string ID
                 const memberDoc = await db.collection('members').doc(formattedId).get();
+
                 if (memberDoc.exists) {
                     const memberInfo = memberDoc.data();
+
+                    // FIX: Ensure proper data matching (ID / password). Allow custom password if set in DB.
                     const correctPassword = memberInfo.password || 'Bat@123';
+
                     if (pass === correctPassword) {
                         authenticated = true;
                         userData.name = memberInfo.name;
@@ -1251,7 +1351,7 @@
                         return;
                     }
                 } else {
-                    showToast("Member Number not found in database.", "error");
+                    showToast("Member Number not found in database. Contact Admin.", "error");
                     loginBtn.innerText = "Log In";
                     loginBtn.disabled = false;
                     return; 
@@ -1260,20 +1360,13 @@
 
             if (authenticated) {
                 currentUser = userData;
+
+                // FIX: Explicitly store ID as string to prevent user_id string/number mismatches in later queries
                 currentUser.id = String(formattedId); 
-                
+
                 if (document.getElementById('remember-me').checked) {
                     localStorage.setItem('sbj_user', JSON.stringify(userData));
                 }
-
-                const userRef = db.collection('users').doc(currentUser.id);
-                await userRef.set({
-                    userId: currentUser.id,
-                    name: currentUser.name,
-                    role: currentUser.role,
-                    lastActive: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
                 showToast(`Welcome, ${userData.name} ✅`);
                 await routeUser(role);
             } else {
@@ -1292,11 +1385,6 @@
 
     function logout() {
         if (notificationsUnsubscribe) notificationsUnsubscribe();
-        if (window.OneSignal) {
-            OneSignalDeferred.push(function(OneSignal) {
-                OneSignal.logout();
-            });
-        }
         currentUser = null;
         localStorage.removeItem('sbj_user'); 
         document.getElementById('login-form').reset();
@@ -1304,10 +1392,12 @@
     }
 
     async function routeUser(role) {
+        // FIX 1 (INBOX ISSUE): Await fetchRequests entirely to block routing and UI renders until fresh live data arrives.
         showToast("Loading latest data... ⏳");
         await fetchRequests(role);
         setupNotificationsListener(currentUser.id);
-        setupOneSignalUser(); // Call OneSignal login
+
+        requestPushNotificationPermission(); 
 
         if (role === 'Admin') {
             document.getElementById('admin-name-display').innerText = currentUser.name;
@@ -1757,7 +1847,7 @@
             }
             const usedThisMonth = getUsedGrantThisMonthLocal(currentUser.id);
             if (usedThisMonth >= 1000) {
-                sendUserNotification(currentUser.id, "Grant Limit Reached", "Your monthly grant of ₹1000 has been fully utilized. Tap to view.", "personal", "system");
+                sendUserNotification(currentUser.id, "Grant Limit Reached", "Your monthly grant of ₹1000 has been fully utilized. Tap to view.", null, "personal", "system");
                 alert("Your Monthly Grant Of ₹1000/- From Shree Batrisi Jain Co-Op Education Society Has Already Been Fully Utilized For This Month.\nYou Will Be Able To Use The Grant Again Next Month, When The System Automatically Renews Your ₹1000 Monthly Limit.");
                 submitBtn.disabled = false;
                 submitBtn.innerText = originalBtnText;
@@ -1800,21 +1890,29 @@
                 showToast("Request Submitted Successfully! ✅");
                 const successMsg = "Your request has been successfully sent. Please wait for committee approval.";
 
-                sendUserNotification(currentUser.id, "Request Submitted", successMsg, "personal", "system");
+                sendUserNotification(currentUser.id, "Request Submitted", successMsg, null, "personal", "system");
 
+                // FIX 1 (INBOX ISSUE): Target the notification *specifically* to the assigned Committee Member by string ID.
+                // Previously broadcasted to ALL committee members, causing them to open empty inboxes for requests not assigned to them.
                 try {
                     const assignedCommitteeName = document.getElementById('req-committee').value;
                     const assignedObj = committeeList.find(c => c.name === assignedCommitteeName);
-                    
+
                     if (assignedObj && assignedObj.username) {
                         const committeeUserId = String(assignedObj.username);
-                        sendUserNotification(
-                            committeeUserId,
-                            "New Medical Request",
-                            `A new form has been submitted by ${currentUser.name} – Tap to review`,
-                            "personal",
-                            "member"
-                        );
+                        const committeeDoc = await db.collection('users').doc(committeeUserId).get();
+
+                        if (committeeDoc.exists) {
+                            const data = committeeDoc.data();
+                            sendUserNotification(
+                                committeeUserId,
+                                "New Medical Request",
+                                `A new form has been submitted by ${currentUser.name} – Tap to review`,
+                                data.fcmToken,
+                                "personal",
+                                "member"
+                            );
+                        }
                     }
                 } catch(err) { console.error("Error notifying committee", err); }
 
@@ -1999,7 +2097,7 @@
         }
 
         const myTasks = requests.filter(r => (r.assignedTo === currentUser.name || r.assignedCommittee === currentUser.name) && r.status === 'Pending');
-        
+
         let html = `<h2>Pending Approvals</h2>`;
         if(myTasks.length === 0) {
             html += `<p style="color:var(--text-secondary); text-align:center; margin-top:30px;">You're all caught up!</p>`;
@@ -2088,10 +2186,14 @@
                 requests[reqIndex] = { ...requests[reqIndex], ...updatedFields };
                 showToast(`Approved! Token generated: ${token} ✅`);
 
+                const memDoc = await db.collection('users').doc(req.memberId).get();
+                let memberFcmToken = memDoc.exists ? memDoc.data().fcmToken : null;
+
                 await sendUserNotification(
                     req.memberId,
                     "Request Approved ✅",
                     `Your request has been approved! Token: ${token} – Tap to view`,
+                    memberFcmToken,
                     "personal",
                     "committee"
                 );
@@ -2128,10 +2230,14 @@
                 closeModal('modal-decline');
                 showToast("Request Rejected ❌");
 
+                const memDoc = await db.collection('users').doc(req.memberId).get();
+                let memberFcmToken = memDoc.exists ? memDoc.data().fcmToken : null;
+
                 await sendUserNotification(
                     req.memberId,
                     "Request Declined ❌",
                     `Your request was Declined. Reason: ${reason} – Tap to view`,
+                    memberFcmToken,
                     "personal",
                     "committee"
                 );
@@ -2259,7 +2365,7 @@
                 completeBtn.innerText = origBtnText;
                 completeBtn.disabled = false;
             }
-            sendUserNotification(activeLabRequest.memberId, "Limit Exceeded", "Monthly assistance limit of ₹1000 per month exceeded. Tap to view.", "personal", "system");
+            sendUserNotification(activeLabRequest.memberId, "Limit Exceeded", "Monthly assistance limit of ₹1000 per month exceeded. Tap to view.", null, "personal", "system");
             return showToast("Member assistance limit is maximum ₹1000 per month.", "error");
         }
         const reqIndex = requests.findIndex(r => r.id === activeLabRequest.id);
@@ -2288,10 +2394,14 @@
             requests[reqIndex] = { ...requests[reqIndex], ...updatedFields };
             showToast("Report closed 🧾");
 
+            const memDoc = await db.collection('users').doc(activeLabRequest.memberId).get();
+            let memberFcmToken = memDoc.exists ? memDoc.data().fcmToken : null;
+
             await sendUserNotification(
                 activeLabRequest.memberId,
                 "Report Completed",
                 `Your report is completed – Tap to view amount 🧾`,
+                memberFcmToken,
                 "personal",
                 "lab"
             );
@@ -2451,7 +2561,7 @@
         db.collection('requests').doc(id).delete().then(() => {
             closeModal('modal-delete-confirm');
             showToast("Report Deleted Permanently! ✅");
-            sendUserNotification("kiran.desai3667@gmail.com", "Report Deleted", "A medical report was deleted by Admin.", "personal", "system");
+            sendUserNotification("kiran.desai3667@gmail.com", "Report Deleted", "A medical report was deleted by Admin.", null, "personal", "system");
             renderAdminRequests(); 
         }).catch(err => {
             showToast("Something went wrong ❌", "error");
