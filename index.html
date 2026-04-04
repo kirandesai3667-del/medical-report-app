@@ -16,6 +16,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "c63042ff-00b4-49f0-9307-74673692e9ac",
+          path: "/medical-report-app/",
+          serviceWorkerPath: "OneSignalSDKWorker.js",
+          serviceWorkerParam: { scope: "/medical-report-app/" },
+          notifyButton: { enable: true },
+          allowLocalhostAsSecureOrigin: true,
+        });
+      });
+    </script>
+
     <style>
         :root {
             --bg-base: #000000;
@@ -452,7 +467,7 @@
     // ================= SERVICE WORKER REGISTRATION =================
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-            navigator.serviceWorker.register("./firebase-messaging-sw.js", { updateViaCache: 'none' })
+            navigator.serviceWorker.register("OneSignalSDKWorker.js", { scope: "/medical-report-app/" })
             .then((reg) => {
                 console.log("Service Worker Registered:", reg.scope);
                 reg.update(); // Forces browser to pull the latest Service Worker file
@@ -578,6 +593,16 @@
         }
     }
 
+    async function triggerOneSignalBroadcastSecure(title, message) {
+        try {
+            const params = new URLSearchParams();
+            params.append('action', 'send_onesignal_broadcast');
+            params.append('title', title);
+            params.append('body', message);
+            await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+        } catch (e) { console.error("OneSignal trigger failed:", e); }
+    }
+
     async function sendUserNotification(userId, title, message, fcmToken = null, type = "personal", createdBy = "system") {
         try {
             await db.collection('notifications').add({
@@ -601,7 +626,7 @@
 
     async function sendNotificationToAll(title, message) {
         try {
-            triggerPush('allUsers', title, message, true);
+            triggerOneSignalBroadcastSecure(title, message);
             await db.collection('notifications').add({
                 target: "all",
                 title: title,
