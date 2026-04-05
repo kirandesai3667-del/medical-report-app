@@ -369,7 +369,6 @@
         <div class="content-area" id="member-content-area"></div>
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-member-apply" onclick="renderMemberApply()"><i class="ph-fill ph-plus-circle"></i><span>Apply</span></div>
-            <!-- FIX 1 (UI REFETCH): Changed onClick to fetch live data rather than strictly rendering stale local memory -->
             <div class="nav-item" id="nav-member-status" onclick="fetchRequests('Member')"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
             <div class="nav-item" id="nav-member-programs" onclick="renderMemberPrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
@@ -396,7 +395,6 @@
         </div>
         <div class="content-area" id="committee-request-list"></div>
         <div class="bottom-nav">
-            <!-- FIX 1 (UI REFETCH): Changed onClick to fetch live data rather than strictly rendering stale local memory -->
             <div class="nav-item active" id="nav-committee-inbox" onclick="fetchRequests('Committee')"><i class="ph-fill ph-tray"></i><span>Inbox</span></div>
             <div class="nav-item" id="nav-committee-programs" onclick="renderCommitteePrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="openModal('modal-change-password-committee')"><i class="ph ph-key"></i><span>Password</span></div>
@@ -432,7 +430,7 @@
         <div class="bottom-nav"><div class="nav-item active" onclick="resetLabSearch()"><i class="ph-fill ph-magnifying-glass"></i><span>Search</span></div><div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div></div>
     </div>
 
-    <!-- Extra modals: decline, view photo, change password, QR scanner -->
+    <!-- Extra modals -->
     <div id="modal-decline" class="modal"><div class="modal-content"><h2>Decline Request</h2><div class="form-group"><label>Reason for rejection</label><textarea id="decline-reason" rows="3" placeholder="Enter reason..."></textarea></div><input type="hidden" id="decline-request-id"><div class="btn-group"><button class="btn-outline" onclick="closeModal('modal-decline')">Cancel</button><button class="btn-danger" onclick="confirmDecline()">Confirm Decline</button></div></div></div>
     <div id="modal-view-photo" class="modal"><div class="modal-content" style="background: transparent; align-items: center; padding-bottom: 20px;"><img id="full-id-photo" src="" style="max-width: 100%; max-height: 70vh; border-radius: 12px; object-fit: contain;"><button class="btn-outline" style="margin-top: 20px; background: rgba(0,0,0,0.5); color: white; border: none;" onclick="closeModal('modal-view-photo')"><i class="ph ph-x"></i> Close</button></div></div>
     <div id="modal-change-password-committee" class="modal"><div class="modal-content"><h2 style="text-align: center;">Change Password</h2><form id="form-change-password"><div class="form-group"><label>Old Password</label><input type="password" id="cp-old" required></div><div class="form-group"><label>New Password</label><input type="password" id="cp-new" required></div><div class="form-group"><label>Confirm New Password</label><input type="password" id="cp-confirm" required></div><button type="submit" class="btn-success" style="margin-top: 15px;">Update Password</button></form><button class="btn-outline" style="margin-top: 10px;" onclick="closeModal('modal-change-password-committee')">Cancel</button></div></div>
@@ -470,7 +468,7 @@
             navigator.serviceWorker.register("OneSignalSDKWorker.js", { scope: "/medical-report-app/" })
             .then((reg) => {
                 console.log("Service Worker Registered:", reg.scope);
-                reg.update(); // Forces browser to pull the latest Service Worker file
+                reg.update();
             })
             .catch((err) => console.error("Registration Failed:", err));
         });
@@ -483,7 +481,6 @@
     async function initFirebaseMessaging() {
         try {
             if (firebase.messaging) {
-                // isSupported is an async promise in compat v9+, handles unsupported environments gracefully
                 const isSupported = await firebase.messaging.isSupported();
                 if (isSupported) {
                     messaging = firebase.messaging();
@@ -500,7 +497,6 @@
         }
     }
 
-    // Call immediately (non-blocking)
     initFirebaseMessaging();
 
     async function subscribeToTopic(token, topic) {
@@ -510,7 +506,6 @@
             params.append('token', token);
             params.append('topic', topic);
 
-            // FIX (CORS): Added mode: 'no-cors' so browser doesn't block GAS request
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: params,
@@ -534,7 +529,6 @@
             }
 
             if (permission === 'granted') {
-                // Safely wait for SW to be ready
                 const registration = await navigator.serviceWorker.ready;
                 const token = await messaging.getToken({ 
                     vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
@@ -542,7 +536,6 @@
                 });
 
                 if (token) {
-                    // FIX (CONSOLE LOG): Explicitly passing the token to be logged in console
                     console.log("FCM Token Generated Successfully: ", token);
 
                     const userRef = db.collection('users').doc(currentUser.id);
@@ -574,14 +567,9 @@
             params.append('target', target);
             params.append('title', title);
             params.append('body', body);
-
-            // FIX 2 (NOTIFICATION): Explicity append both notification and data payloads for the backend.
-            // This guarantees the generated FCM message contains the "notification" payload needed
-            // to display background system alerts while the app is closed.
             params.append('notification', JSON.stringify({ title: String(title), body: String(body) }));
             params.append('data', JSON.stringify({ title: String(title), body: String(body) }));
 
-            // FIX (CORS): Added mode: 'no-cors' so browser doesn't block GAS request
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: params,
@@ -591,16 +579,6 @@
         } catch (e) {
             console.error("Push failed:", e);
         }
-    }
-
-    async function triggerOneSignalBroadcastSecure(title, message) {
-        try {
-            const params = new URLSearchParams();
-            params.append('action', 'send_onesignal_broadcast');
-            params.append('title', title);
-            params.append('body', message);
-            await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
-        } catch (e) { console.error("OneSignal trigger failed:", e); }
     }
 
     async function sendUserNotification(userId, title, message, fcmToken = null, type = "personal", createdBy = "system") {
@@ -624,9 +602,41 @@
         }
     }
 
+    // =========================================================================
+    // UPDATE: OneSignal REST API Integration for Background Broadcasts
+    // =========================================================================
     async function sendNotificationToAll(title, message) {
+        // 1. OneSignal API Keys
+        const ONESIGNAL_APP_ID = "c63042ff-00b4-49f0-9307-74673692e9ac";
+        const ONESIGNAL_REST_API_KEY = "6xanxmjq2ellekyucoi7wqzeh"; // <---- यहाँ अपनी API Key डालें
+
+        // 2. Prepare Payload
+        const payload = {
+            app_id: ONESIGNAL_APP_ID,
+            included_segments: ["Subscribed Users", "Active Users"], // Sends to all subscribers
+            headings: { "en": title },
+            contents: { "en": message }
+        };
+
         try {
-            triggerOneSignalBroadcastSecure(title, message);
+            // 3. Send Request directly to OneSignal Server
+            const pushResponse = await fetch("https://onesignal.com/api/v1/notifications", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json; charset=utf-8",
+                    "Authorization": `Basic ${ONESIGNAL_REST_API_KEY}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await pushResponse.json();
+            if (pushResponse.ok) {
+                console.log("OneSignal Push Sent Successfully:", result);
+            } else {
+                console.error("OneSignal Push Failed:", result);
+            }
+
+            // 4. Save Notification in Firebase (For In-App Bell Icon)
             await db.collection('notifications').add({
                 target: "all",
                 title: title,
@@ -637,23 +647,36 @@
                 read: false,
                 deleted: false
             });
+
             showToast("Broadcast sent to all users ✅");
         } catch (error) {
             console.error("Broadcast Error:", error);
+            showToast("Notification saved, but push had an issue ❌", "error");
         }
     }
 
     function sendBroadcastNotification() {
         const title = document.getElementById('notif-title').value.trim();
         const message = document.getElementById('notif-message').value.trim();
+        
         if (!title || !message) {
             showToast("Please enter both title and message", "error");
             return;
         }
-        sendNotificationToAll(title, message);
-        closeModal('modal-send-notification');
-        document.getElementById('notif-title').value = '';
-        document.getElementById('notif-message').value = '';
+
+        const submitBtn = document.querySelector('#modal-send-notification .btn-success');
+        const origText = submitBtn.innerText;
+        submitBtn.innerText = "Sending...";
+        submitBtn.disabled = true;
+
+        // Calling the updated central notification function
+        sendNotificationToAll(title, message).then(() => {
+            closeModal('modal-send-notification');
+            document.getElementById('notif-title').value = '';
+            document.getElementById('notif-message').value = '';
+            submitBtn.innerText = origText;
+            submitBtn.disabled = false;
+        });
     }
 
     async function clearAdminNotifications() {
@@ -1013,7 +1036,6 @@
     async function fetchRequests(role) {
         let query = db.collection('requests');
 
-        // FIX 1 (INBOX ISSUE): Cast IDs to String explicitly to prevent user_id string/number mismatches.
         if (role === 'Member') {
             query = query.where('memberId', '==', String(currentUser.id));
         } else if (role === 'Committee') {
@@ -1023,7 +1045,6 @@
         }
 
         try {
-            // FIX 1 (INBOX ISSUE): Disable caching to prevent stale data across multiple devices.
             let snapshot;
             try {
                 snapshot = await query.get({ source: 'server' });
@@ -1034,8 +1055,6 @@
 
             requests = snapshot.docs.map(doc => doc.data());
 
-            // Limit memory usage by locally sorting and capping the data correctly 
-            // since index constraints prevent us from natively combining .orderBy with .where.
             requests.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
             requests = requests.slice(0, 50);
 
@@ -1321,7 +1340,6 @@
 
         let authenticated = false;
 
-        // FIX: Explicitly cast ID to string and format it safely to prevent string/number mismatches
         const formattedId = String(rawId || "").trim().toUpperCase();
 
         if (!formattedId) {
@@ -1354,13 +1372,11 @@
                 }
             } else if (role === 'Member') {
 
-                // FIX: Ensure correct Firestore query for Member by safely using string ID
                 const memberDoc = await db.collection('members').doc(formattedId).get();
 
                 if (memberDoc.exists) {
                     const memberInfo = memberDoc.data();
 
-                    // FIX: Ensure proper data matching (ID / password). Allow custom password if set in DB.
                     const correctPassword = memberInfo.password || 'Bat@123';
 
                     if (pass === correctPassword) {
@@ -1385,8 +1401,6 @@
 
             if (authenticated) {
                 currentUser = userData;
-
-                // FIX: Explicitly store ID as string to prevent user_id string/number mismatches in later queries
                 currentUser.id = String(formattedId); 
 
                 if (document.getElementById('remember-me').checked) {
@@ -1417,7 +1431,6 @@
     }
 
     async function routeUser(role) {
-        // FIX 1 (INBOX ISSUE): Await fetchRequests entirely to block routing and UI renders until fresh live data arrives.
         showToast("Loading latest data... ⏳");
         await fetchRequests(role);
         setupNotificationsListener(currentUser.id);
@@ -1917,8 +1930,6 @@
 
                 sendUserNotification(currentUser.id, "Request Submitted", successMsg, null, "personal", "system");
 
-                // FIX 1 (INBOX ISSUE): Target the notification *specifically* to the assigned Committee Member by string ID.
-                // Previously broadcasted to ALL committee members, causing them to open empty inboxes for requests not assigned to them.
                 try {
                     const assignedCommitteeName = document.getElementById('req-committee').value;
                     const assignedObj = committeeList.find(c => c.name === assignedCommitteeName);
