@@ -461,14 +461,13 @@
         });
     }
 
-    // ================= FCM & PUSH LOGIC (UPDATED & SAFE) =================
+    // ================= FCM & PUSH LOGIC =================
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyKv5Ma3XMQQvxXGlDmsgDXVg-gcGOizvpnCRQcK9M5jg-J5QgK2CyWin1rg9Emfqgifw/exec'; 
     let messaging = null;
 
     async function initFirebaseMessaging() {
         try {
             if (firebase.messaging) {
-                // isSupported is an async promise in compat v9+, handles unsupported environments gracefully
                 const isSupported = await firebase.messaging.isSupported();
                 if (isSupported) {
                     messaging = firebase.messaging();
@@ -485,7 +484,6 @@
         }
     }
 
-    // Call immediately (non-blocking)
     initFirebaseMessaging();
 
     async function subscribeToTopic(token, topic) {
@@ -495,7 +493,6 @@
             params.append('token', token);
             params.append('topic', topic);
 
-            // FIX (CORS): Added mode: 'no-cors' so browser doesn't block GAS request
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: params,
@@ -519,7 +516,6 @@
             }
 
             if (permission === 'granted') {
-                // Safely wait for SW to be ready
                 const registration = await navigator.serviceWorker.ready;
                 const token = await messaging.getToken({ 
                     vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
@@ -527,7 +523,6 @@
                 });
 
                 if (token) {
-                    // FIX (CONSOLE LOG): Explicitly passing the token to be logged in console
                     console.log("FCM Token Generated Successfully: ", token);
 
                     const userRef = db.collection('users').doc(currentUser.id);
@@ -560,13 +555,9 @@
             params.append('title', title);
             params.append('body', body);
 
-            // FIX 2 (NOTIFICATION): Explicity append both notification and data payloads for the backend.
-            // This guarantees the generated FCM message contains the "notification" payload needed
-            // to display background system alerts while the app is closed.
             params.append('notification', JSON.stringify({ title: String(title), body: String(body) }));
             params.append('data', JSON.stringify({ title: String(title), body: String(body) }));
 
-            // FIX (CORS): Added mode: 'no-cors' so browser doesn't block GAS request
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: params,
@@ -599,9 +590,29 @@
         }
     }
 
+
+    // =========================================================================
+    // UPDATE: OneSignal Push via Google Apps Script (Bypass CORS Error)
+    // =========================================================================
+    async function triggerOneSignalBroadcastSecure(title, message) {
+        try {
+            const params = new URLSearchParams();
+            params.append('action', 'send_onesignal_broadcast');
+            params.append('title', title);
+            params.append('body', message);
+            // SCRIPT_URL ऊपर पहले से डिफाइन है
+            await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+        } catch (e) { 
+            console.error("OneSignal trigger failed:", e); 
+        }
+    }
+
     async function sendNotificationToAll(title, message) {
         try {
-            triggerPush('allUsers', title, message, true);
+            // 1. Google Script को सिग्नल भेजें (यह बैकग्राउंड में OneSignal को ट्रिगर करेगा)
+            triggerOneSignalBroadcastSecure(title, message);
+
+            // 2. Firebase में नोटिफिकेशन सेव करें (Bell Icon के लिए)
             await db.collection('notifications').add({
                 target: "all",
                 title: title,
@@ -612,11 +623,14 @@
                 read: false,
                 deleted: false
             });
+
             showToast("Broadcast sent to all users ✅");
         } catch (error) {
             console.error("Broadcast Error:", error);
+            showToast("Something went wrong ❌", "error");
         }
     }
+
 
     function sendBroadcastNotification() {
         const title = document.getElementById('notif-title').value.trim();
