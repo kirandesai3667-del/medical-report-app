@@ -580,27 +580,30 @@
 
 
     // =========================================================================
-    // UPDATE: OneSignal Push via Google Apps Script (Bypass CORS Error)
+    // BROADCAST NOTIFICATION VIA GOOGLE APPS SCRIPT (HIGH PRIORITY)
     // =========================================================================
-    async function triggerOneSignalBroadcastSecure(title, message) {
+    async function sendNotificationToAll(title, message) {
+        const btn = document.querySelector('#modal-send-notification .btn-success');
+        if (btn) {
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+        }
+
         try {
+            // 1. सीधे Firebase "allUsers" टॉपिक को हाई-प्रायोरिटी सिग्नल भेजें
+            // यह आपके Apps Script को मैसेज भेजेगा
             const params = new URLSearchParams();
-            params.append('action', 'send_onesignal_broadcast');
+            params.append('action', 'send_onesignal_broadcast'); 
             params.append('title', title);
             params.append('body', message);
-            // SCRIPT_URL ऊपर पहले से डिफाइन है
-            await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
-        } catch (e) { 
-            console.error("OneSignal trigger failed:", e); 
-        }
-    }
 
-    async function sendNotificationToAll(title, message) {
-        try {
-            // 1. Google Script को सिग्नल भेजें (यह बैकग्राउंड में OneSignal को ट्रिगर करेगा)
-            triggerOneSignalBroadcastSecure(title, message);
+            await fetch(SCRIPT_URL, { 
+                method: 'POST', 
+                body: params, 
+                mode: 'no-cors' 
+            });
 
-            // 2. Firebase में नोटिफिकेशन सेव करें (Bell Icon के लिए)
+            // 2. ऐप के अंदर घंटी (Bell Icon) में दिखाने के लिए सेव करें
             await db.collection('notifications').add({
                 target: "all",
                 title: title,
@@ -612,10 +615,19 @@
                 deleted: false
             });
 
-            showToast("Broadcast sent to all users ✅");
+            showToast("Broadcast Notification Sent! ✅");
+            closeModal('modal-send-notification');
+            document.getElementById('notif-title').value = '';
+            document.getElementById('notif-message').value = '';
+
         } catch (error) {
             console.error("Broadcast Error:", error);
-            showToast("Something went wrong ❌", "error");
+            showToast("Failed to send broadcast ❌", "error");
+        } finally {
+            if (btn) {
+                btn.innerText = "Send Now";
+                btn.disabled = false;
+            }
         }
     }
 
@@ -628,9 +640,6 @@
             return;
         }
         sendNotificationToAll(title, message);
-        closeModal('modal-send-notification');
-        document.getElementById('notif-title').value = '';
-        document.getElementById('notif-message').value = '';
     }
 
     async function clearAdminNotifications() {
