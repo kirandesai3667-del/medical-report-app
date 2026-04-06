@@ -449,19 +449,7 @@
     }
     const db = firebase.firestore();
 
-    // ================= SERVICE WORKER REGISTRATION =================
-    if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-            navigator.serviceWorker.register("./firebase-messaging-sw.js", { updateViaCache: 'none' })
-            .then((reg) => {
-                console.log("Service Worker Registered:", reg.scope);
-                reg.update(); // Forces browser to pull the latest Service Worker file
-            })
-            .catch((err) => console.error("Registration Failed:", err));
-        });
-    }
-
-    // ================= FCM & PUSH LOGIC =================
+       // ================= FCM & PUSH LOGIC =================
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzmJSmqaoUySASwl_67xDnpPNjPoeAarFdzmtS7RinfQKfvUWNjO0F3Fa3N4Q4noXgZCQ/exec'; 
     let messaging = null;
 
