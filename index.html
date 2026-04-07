@@ -973,7 +973,12 @@
 
         // FIX 1 (INBOX ISSUE): Cast IDs to String explicitly to prevent user_id string/number mismatches.
         if (role === 'Member') {
-            query = query.where('memberId', '==', String(currentUser.id));
+            // FIX: पुरानी (Number) और नई (String) दोनों ID से डेटा सर्च करें
+            let searchIds = [String(currentUser.id)];
+            if (!isNaN(currentUser.id)) {
+                searchIds.push(Number(currentUser.id));
+            }
+            query = query.where('memberId', 'in', searchIds);
         } else if (role === 'Committee') {
             query = query.where('assignedTo', '==', String(currentUser.name));
         } else if (role === 'Laboratory') {
@@ -1140,7 +1145,8 @@
         const currentYear = String(now.getFullYear());
         let used = 0;
         requests.forEach(r => {
-            if (r.memberId === memberId && r.status === 'Completed' && r.labClosedDate) {
+            // FIX: String में कन्वर्ट करके मैच करें
+            if (String(r.memberId) === String(memberId) && r.status === 'Completed' && r.labClosedDate) {
                 const datePart = r.labClosedDate.split(' ')[0];
                 const parts = datePart.split('/');
                 if (parts.length >= 3 && parts[1] === currentMonth && parts[2] === currentYear) {
@@ -1157,10 +1163,15 @@
         const currentYear = String(now.getFullYear());
         let used = 0;
         try {
+            // FIX: Number और String दोनों फॉर्मेट में बिल कैलकुलेट करें
+            let searchIds = [String(memberId)];
+            if (!isNaN(memberId)) searchIds.push(Number(memberId));
+
             const snapshot = await db.collection('requests')
-                .where('memberId', '==', memberId)
+                .where('memberId', 'in', searchIds)
                 .where('status', '==', 'Completed')
                 .get();
+                
             snapshot.forEach(doc => {
                 const r = doc.data();
                 if (r.labClosedDate) {
@@ -1918,7 +1929,9 @@
         document.getElementById('nav-member-status').querySelector('i').className = 'ph-fill ph-clock-counter-clockwise';
         document.getElementById('nav-member-apply').querySelector('i').className = 'ph ph-plus-circle';
 
-        const myReqs = requests.filter(r => r.memberId === currentUser.id).reverse();
+        // FIX: String में कन्वर्ट करके चेक करें ताकि पुराने टोकन भी दिखें
+        const myReqs = requests.filter(r => String(r.memberId) === String(currentUser.id)).reverse();
+        
         if (myReqs.some(req => req.token)) {
             await loadQRLib();
         }
