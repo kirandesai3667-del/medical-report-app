@@ -475,8 +475,8 @@
     // ================= SERVICE WORKER REGISTRATION =================
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-            navigator.serviceWorker.register("./firebase-messaging-sw.js")
-            .then((reg) => { reg.update(); });
+            navigator.serviceWorker.register("/medical-report-app/firebase-messaging-sw.js", { scope: "/medical-report-app/" })
+            .then((reg) => { console.log("FCM SW Registered"); reg.update(); });
         });
     }
 
@@ -502,20 +502,22 @@
         try {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
+                const registration = await navigator.serviceWorker.ready;
                 const token = await messaging.getToken({ 
-                    vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I'
+                    vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
+                    serviceWorkerRegistration: registration 
                 });
                 if (token) {
-                    // डेटाबेस में टोकन सेव करना (Personal Notification के लिए)
+                    // Save token to database (for Personal Notification)
                     await db.collection('users').doc(String(currentUser.id)).set({
                         fcmToken: token,
                         lastActive: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
-                    // ब्रॉडकास्ट ग्रुप में जुड़ना
+                    // Join broadcast group
                     subscribeToTopic(token, "allUsers");
                 }
             }
-        } catch (error) { console.error('Token Error:', error); }
+        } catch (error) { console.error('Token Generation Error:', error); }
     }
 
     async function triggerPush(target, title, body, isTopic = false) {
@@ -564,26 +566,32 @@
 
 
     // =========================================================================
-    // UPDATED BROADCAST NOTIFICATION VIA GOOGLE APPS SCRIPT (HIGH PRIORITY)
+    // UPDATED BROADCAST NOTIFICATION VIA GOOGLE APPS SCRIPT
     // =========================================================================
     async function sendNotificationToAll(title, message) {
         const btn = document.querySelector('#modal-send-notification .btn-success');
         if (btn) { btn.innerText = "Sending..."; btn.disabled = true; }
         try {
             const params = new URLSearchParams();
-            params.append('action', 'send_onesignal_broadcast'); // Apps Script में यही नाम रखा है हमने
+            params.append('action', 'send_onesignal_broadcast'); // Name kept identical as requested
             params.append('title', title);
             params.append('body', message);
 
-            // Apps Script के जरिए High Priority मैसेज भेजना
+            // Send via Apps Script for High Priority Push
             await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
 
-            // Bell Icon के लिए सेव करना
+            // Save to Firestore for the Bell Icon / Notification Tab
             await db.collection('notifications').add({
-                target: "all", title: title, message: message, type: "broadcast",
-                createdBy: "admin", timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                read: false, deleted: false
+                target: "all", 
+                title: title, 
+                message: message, 
+                type: "broadcast",
+                createdBy: "admin", 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                read: false, 
+                deleted: false
             });
+            
             showToast("Broadcast Sent to all members! ✅");
             closeModal('modal-send-notification');
             document.getElementById('notif-title').value = '';
@@ -1370,7 +1378,7 @@
         // FIX 1 (INBOX ISSUE): Await fetchRequests entirely to block routing and UI renders until fresh live data arrives.
         showToast("Loading latest data... ⏳");
         await fetchRequests(role);
-        requestPushNotificationPermission(); // Point 5 integration
+        requestPushNotificationPermission(); // Point 5 integration: auto trigger push request on login completion
         setupNotificationsListener(currentUser.id);
 
         if (role === 'Admin') {
