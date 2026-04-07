@@ -354,7 +354,6 @@
         <div class="content-area" id="member-content-area"></div>
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-member-apply" onclick="renderMemberApply()"><i class="ph-fill ph-plus-circle"></i><span>Apply</span></div>
-            <!-- FIX: Added renderMemberStatus() in onclick so the screen actually switches -->
             <div class="nav-item" id="nav-member-status" onclick="renderMemberStatus(); fetchRequests('Member');"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
             <div class="nav-item" id="nav-member-programs" onclick="renderMemberPrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
@@ -381,7 +380,6 @@
         </div>
         <div class="content-area" id="committee-request-list"></div>
         <div class="bottom-nav">
-            <!-- FIX: Added renderCommitteeRequests() in onclick -->
             <div class="nav-item active" id="nav-committee-inbox" onclick="renderCommitteeRequests(); fetchRequests('Committee');"><i class="ph-fill ph-tray"></i><span>Inbox</span></div>
             <div class="nav-item" id="nav-committee-programs" onclick="renderCommitteePrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="openModal('modal-change-password-committee')"><i class="ph ph-key"></i><span>Password</span></div>
@@ -510,8 +508,7 @@
                     serviceWorkerRegistration: registration 
                 });
                 if (token) {
-                    // 👇 यह लाइन आपका टोकन कंसोल में दिखा देगी!
-                    console.log("🔥 FCM Token Generated: ", token); 
+                    console.log("🔥 FCM Token Generated: ", token);
 
                     // Save token to database (for Personal Notification)
                     await db.collection('users').doc(String(currentUser.id)).set({
@@ -525,10 +522,9 @@
         } catch (error) { console.error('Token Generation Error:', error); }
     }
 
-    aasync function triggerPush(target, title, body, isTopic = false) {
+    async function triggerPush(target, title, body, isTopic = false) {
         if (!target) return;
         try {
-            // PUSH NOTIFICATION के लिए पर्सनल मैसेज को भी छोटा करें
             let shortBody = body;
             if (shortBody.length > 150) {
                 shortBody = shortBody.substring(0, 150) + "...";
@@ -575,7 +571,6 @@
         }
     }
 
-
     // =========================================================================
     // UPDATED BROADCAST NOTIFICATION VIA GOOGLE APPS SCRIPT
     // =========================================================================
@@ -583,7 +578,6 @@
         const btn = document.querySelector('#modal-send-notification .btn-success');
         if (btn) { btn.innerText = "Sending..."; btn.disabled = true; }
         try {
-            // PUSH NOTIFICATION के लिए मैसेज को छोटा करें (ताकि 4KB साइज़ लिमिट क्रॉस न हो)
             let shortMessage = message;
             if (shortMessage.length > 150) {
                 shortMessage = shortMessage.substring(0, 150) + "... (Tap to read more)";
@@ -592,7 +586,7 @@
             const params = new URLSearchParams();
             params.append('action', 'send_onesignal_broadcast'); 
             params.append('title', title);
-            params.append('body', shortMessage); // यहाँ छोटा मैसेज जाएगा (Lock Screen के लिए)
+            params.append('body', shortMessage);
 
             // Send via Apps Script for High Priority Push
             await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
@@ -601,7 +595,7 @@
             await db.collection('notifications').add({
                 target: "all", 
                 title: title, 
-                message: message, // यहाँ पूरा बड़ा મેસેજ सेव होगा (App के अंदर पढ़ने के लिए)
+                message: message, 
                 type: "broadcast",
                 createdBy: "admin", 
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -988,13 +982,12 @@
         try {
             let fetchedDocs = [];
 
-            // FIX: String ID और Number ID दोनों के लिए एकदम सेफ और अलग-अलग सर्च
             if (role === 'Member') {
                 const strId = String(currentUser.id);
                 const q1 = await db.collection('requests').where('memberId', '==', strId).get();
                 fetchedDocs = [...q1.docs];
 
-                if (!isNaN(currentUser.id) && currentUser.id.trim() !== '') {
+                if (!isNaN(currentUser.id) && String(currentUser.id).trim() !== '') {
                     const numId = Number(currentUser.id);
                     const q2 = await db.collection('requests').where('memberId', '==', numId).get();
                     fetchedDocs = [...fetchedDocs, ...q2.docs];
@@ -1013,7 +1006,6 @@
                 fetchedDocs = [...q.docs];
             }
 
-            // डुप्लीकेट्स (Duplicates) हटाने के लिए Map का इस्तेमाल
             const uniqueRequests = new Map();
             fetchedDocs.forEach(doc => {
                 uniqueRequests.set(doc.id, doc.data());
@@ -1022,7 +1014,6 @@
             requests = Array.from(uniqueRequests.values());
             requests.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-            // लोकल स्टोरेज में बैकअप सेव करें
             localStorage.setItem('sbj_requests_backup', JSON.stringify(requests));
 
             const activeScreen = document.querySelector('.screen.active')?.id;
@@ -1037,10 +1028,8 @@
 
         } catch (error) {
             console.error("Requests fetch error:", error);
-            // अगर इंटरनेट नहीं है तो पुराने बैकअप से लोड करें
             requests = JSON.parse(localStorage.getItem('sbj_requests_backup')) || [];
             
-            // Fallback Render UI
             const activeScreen = document.querySelector('.screen.active')?.id;
             if (activeScreen === 'screen-admin') renderAdminRequests();
             else if (activeScreen === 'screen-member') {
@@ -1180,7 +1169,6 @@
         const currentYear = String(now.getFullYear());
         let used = 0;
         requests.forEach(r => {
-            // FIX: String में कन्वर्ट करके मैच करें
             if (String(r.memberId) === String(memberId) && r.status === 'Completed' && r.labClosedDate) {
                 const datePart = r.labClosedDate.split(' ')[0];
                 const parts = datePart.split('/');
@@ -1198,7 +1186,6 @@
         const currentYear = String(now.getFullYear());
         let used = 0;
         try {
-            // FIX: Number और String दोनों फॉर्मेट के लिए सेफ रिक्वेस्ट
             let q1 = await db.collection('requests').where('memberId', '==', String(memberId)).get();
             let docs = q1.docs;
 
