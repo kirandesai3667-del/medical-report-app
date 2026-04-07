@@ -525,17 +525,23 @@
         } catch (error) { console.error('Token Generation Error:', error); }
     }
 
-    async function triggerPush(target, title, body, isTopic = false) {
+    aasync function triggerPush(target, title, body, isTopic = false) {
         if (!target) return;
         try {
+            // PUSH NOTIFICATION के लिए पर्सनल मैसेज को भी छोटा करें
+            let shortBody = body;
+            if (shortBody.length > 150) {
+                shortBody = shortBody.substring(0, 150) + "...";
+            }
+
             const params = new URLSearchParams();
             params.append('action', isTopic ? 'send_topic' : 'send_token');
             params.append('target', target);
             params.append('title', title);
-            params.append('body', body);
+            params.append('body', shortBody);
 
-            params.append('notification', JSON.stringify({ title: String(title), body: String(body) }));
-            params.append('data', JSON.stringify({ title: String(title), body: String(body) }));
+            params.append('notification', JSON.stringify({ title: String(title), body: String(shortBody) }));
+            params.append('data', JSON.stringify({ title: String(title), body: String(shortBody) }));
 
             await fetch(SCRIPT_URL, {
                 method: 'POST',
@@ -577,10 +583,16 @@
         const btn = document.querySelector('#modal-send-notification .btn-success');
         if (btn) { btn.innerText = "Sending..."; btn.disabled = true; }
         try {
+            // PUSH NOTIFICATION के लिए मैसेज को छोटा करें (ताकि 4KB साइज़ लिमिट क्रॉस न हो)
+            let shortMessage = message;
+            if (shortMessage.length > 150) {
+                shortMessage = shortMessage.substring(0, 150) + "... (Tap to read more)";
+            }
+
             const params = new URLSearchParams();
             params.append('action', 'send_onesignal_broadcast'); 
             params.append('title', title);
-            params.append('body', message);
+            params.append('body', shortMessage); // यहाँ छोटा मैसेज जाएगा (Lock Screen के लिए)
 
             // Send via Apps Script for High Priority Push
             await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
@@ -589,7 +601,7 @@
             await db.collection('notifications').add({
                 target: "all", 
                 title: title, 
-                message: message, 
+                message: message, // यहाँ पूरा बड़ा મેસેજ सेव होगा (App के अंदर पढ़ने के लिए)
                 type: "broadcast",
                 createdBy: "admin", 
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -607,7 +619,6 @@
             if (btn) { btn.innerText = "Send Now"; btn.disabled = false; } 
         }
     }
-
 
     function sendBroadcastNotification() {
         const title = document.getElementById('notif-title').value.trim();
