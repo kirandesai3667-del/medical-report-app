@@ -354,7 +354,8 @@
         <div class="content-area" id="member-content-area"></div>
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-member-apply" onclick="renderMemberApply()"><i class="ph-fill ph-plus-circle"></i><span>Apply</span></div>
-            <div class="nav-item" id="nav-member-status" onclick="fetchRequests('Member')"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
+            <!-- FIX: Added renderMemberStatus() in onclick so the screen actually switches -->
+            <div class="nav-item" id="nav-member-status" onclick="renderMemberStatus(); fetchRequests('Member');"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
             <div class="nav-item" id="nav-member-programs" onclick="renderMemberPrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
         </div>
@@ -380,7 +381,8 @@
         </div>
         <div class="content-area" id="committee-request-list"></div>
         <div class="bottom-nav">
-            <div class="nav-item active" id="nav-committee-inbox" onclick="fetchRequests('Committee')"><i class="ph-fill ph-tray"></i><span>Inbox</span></div>
+            <!-- FIX: Added renderCommitteeRequests() in onclick -->
+            <div class="nav-item active" id="nav-committee-inbox" onclick="renderCommitteeRequests(); fetchRequests('Committee');"><i class="ph-fill ph-tray"></i><span>Inbox</span></div>
             <div class="nav-item" id="nav-committee-programs" onclick="renderCommitteePrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="openModal('modal-change-password-committee')"><i class="ph ph-key"></i><span>Password</span></div>
             <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
@@ -978,7 +980,7 @@
                 const q1 = await db.collection('requests').where('memberId', '==', strId).get();
                 fetchedDocs = [...q1.docs];
 
-                if (!isNaN(currentUser.id)) {
+                if (!isNaN(currentUser.id) && currentUser.id.trim() !== '') {
                     const numId = Number(currentUser.id);
                     const q2 = await db.collection('requests').where('memberId', '==', numId).get();
                     fetchedDocs = [...fetchedDocs, ...q2.docs];
@@ -1023,6 +1025,17 @@
             console.error("Requests fetch error:", error);
             // अगर इंटरनेट नहीं है तो पुराने बैकअप से लोड करें
             requests = JSON.parse(localStorage.getItem('sbj_requests_backup')) || [];
+            
+            // Fallback Render UI
+            const activeScreen = document.querySelector('.screen.active')?.id;
+            if (activeScreen === 'screen-admin') renderAdminRequests();
+            else if (activeScreen === 'screen-member') {
+                if (document.getElementById('nav-member-status')?.classList.contains('active')) renderMemberStatus();
+            }
+            else if (activeScreen === 'screen-committee') {
+                if (document.getElementById('nav-committee-inbox')?.classList.contains('active')) renderCommitteeRequests();
+            }
+            else if (activeScreen === 'screen-lab') renderLabRequests();
         }
     }
 
@@ -1175,7 +1188,7 @@
             let q1 = await db.collection('requests').where('memberId', '==', String(memberId)).get();
             let docs = q1.docs;
 
-            if (!isNaN(memberId)) {
+            if (!isNaN(memberId) && String(memberId).trim() !== '') {
                 let q2 = await db.collection('requests').where('memberId', '==', Number(memberId)).get();
                 docs = docs.concat(q2.docs);
             }
@@ -1927,7 +1940,6 @@
         document.getElementById('nav-member-status').querySelector('i').className = 'ph-fill ph-clock-counter-clockwise';
         document.getElementById('nav-member-apply').querySelector('i').className = 'ph ph-plus-circle';
 
-        // FIX: String में कन्वर्ट करके चेक करें ताकि पुराने टोकन भी दिखें
         const myReqs = requests.filter(r => String(r.memberId) === String(currentUser.id)).reverse();
         
         if (myReqs.some(req => req.token)) {
