@@ -354,7 +354,6 @@
         <div class="content-area" id="member-content-area"></div>
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-member-apply" onclick="renderMemberApply()"><i class="ph-fill ph-plus-circle"></i><span>Apply</span></div>
-            <!-- FIX 1 (UI REFETCH): Changed onClick to fetch live data rather than strictly rendering stale local memory -->
             <div class="nav-item" id="nav-member-status" onclick="fetchRequests('Member')"><i class="ph ph-clock-counter-clockwise"></i><span>Status</span></div>
             <div class="nav-item" id="nav-member-programs" onclick="renderMemberPrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="logout()"><i class="ph ph-sign-out"></i><span>Logout</span></div>
@@ -381,7 +380,6 @@
         </div>
         <div class="content-area" id="committee-request-list"></div>
         <div class="bottom-nav">
-            <!-- FIX 1 (UI REFETCH): Changed onClick to fetch live data rather than strictly rendering stale local memory -->
             <div class="nav-item active" id="nav-committee-inbox" onclick="fetchRequests('Committee')"><i class="ph-fill ph-tray"></i><span>Inbox</span></div>
             <div class="nav-item" id="nav-committee-programs" onclick="renderCommitteePrograms()"><i class="ph ph-calendar-star"></i><span>Programs</span></div>
             <div class="nav-item" onclick="openModal('modal-change-password-committee')"><i class="ph ph-key"></i><span>Password</span></div>
@@ -449,7 +447,7 @@
     }
     const db = firebase.firestore();
 
-       // ================= FCM & PUSH LOGIC =================
+    // ================= FCM & PUSH LOGIC =================
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx-39kk_xtOxpgyvMAG7H8IFQshyJWKIk4FpHh9Ypn_psZI5ko9jotaXy8uwTxpUos5rw/exec'; 
     let messaging = null;
 
@@ -474,6 +472,14 @@
 
     initFirebaseMessaging();
 
+    // ================= SERVICE WORKER REGISTRATION =================
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("./firebase-messaging-sw.js")
+            .then((reg) => { reg.update(); });
+        });
+    }
+
     async function subscribeToTopic(token, topic) {
         try {
             const params = new URLSearchParams();
@@ -490,48 +496,26 @@
         } catch (e) { console.error('Topic sub failed', e); }
     }
 
+    // ================= UPDATED FCM TOKEN FUNCTION =================
     async function requestPushNotificationPermission() {
-        if (!messaging || !currentUser || !currentUser.id) return;
-        if (!("Notification" in window)) {
-            console.log("Notifications not supported in this browser.");
-            return; 
-        }
-
+        if (!messaging || !currentUser) return;
         try {
-            let permission = Notification.permission;
-            if (permission !== 'granted' && permission !== 'denied') {
-                permission = await Notification.requestPermission();
-            }
-
+            const permission = await Notification.requestPermission();
             if (permission === 'granted') {
-                const registration = await navigator.serviceWorker.ready;
                 const token = await messaging.getToken({ 
-                    vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I',
-                    serviceWorkerRegistration: registration 
+                    vapidKey: 'BFxRJTqBDOWCvbyMxrCiVuWV7FazNMq4yp8Kza1fXjzegNj5me69wYEKWO7Zso2yrEbSazYVTpDif0-cqfn7J0I'
                 });
-
                 if (token) {
-                    console.log("FCM Token Generated Successfully: ", token);
-
-                    const userRef = db.collection('users').doc(currentUser.id);
-                    await userRef.set({
-                        userId: currentUser.id,
-                        name: currentUser.name,
-                        role: currentUser.role,
+                    // डेटाबेस में टोकन सेव करना (Personal Notification के लिए)
+                    await db.collection('users').doc(String(currentUser.id)).set({
                         fcmToken: token,
                         lastActive: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
-
+                    // ब्रॉडकास्ट ग्रुप में जुड़ना
                     subscribeToTopic(token, "allUsers");
-                } else {
-                    console.log("Failed to generate FCM Token: Token is empty");
                 }
-            } else {
-                console.log("Notification permission not granted by user.");
             }
-        } catch (error) {
-            console.error('Notification Error:', error);
-        }
+        } catch (error) { console.error('Token Error:', error); }
     }
 
     async function triggerPush(target, title, body, isTopic = false) {
@@ -580,54 +564,34 @@
 
 
     // =========================================================================
-    // BROADCAST NOTIFICATION VIA GOOGLE APPS SCRIPT (HIGH PRIORITY)
+    // UPDATED BROADCAST NOTIFICATION VIA GOOGLE APPS SCRIPT (HIGH PRIORITY)
     // =========================================================================
     async function sendNotificationToAll(title, message) {
         const btn = document.querySelector('#modal-send-notification .btn-success');
-        if (btn) {
-            btn.innerText = "Sending...";
-            btn.disabled = true;
-        }
-
+        if (btn) { btn.innerText = "Sending..."; btn.disabled = true; }
         try {
-            // 1. सीधे Firebase "allUsers" टॉपिक को हाई-प्रायोरिटी सिग्नल भेजें
-            // यह आपके Apps Script को मैसेज भेजेगा
             const params = new URLSearchParams();
-            params.append('action', 'send_onesignal_broadcast'); 
+            params.append('action', 'send_onesignal_broadcast'); // Apps Script में यही नाम रखा है हमने
             params.append('title', title);
             params.append('body', message);
 
-            await fetch(SCRIPT_URL, { 
-                method: 'POST', 
-                body: params, 
-                mode: 'no-cors' 
-            });
+            // Apps Script के जरिए High Priority मैसेज भेजना
+            await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
 
-            // 2. ऐप के अंदर घंटी (Bell Icon) में दिखाने के लिए सेव करें
+            // Bell Icon के लिए सेव करना
             await db.collection('notifications').add({
-                target: "all",
-                title: title,
-                message: message,
-                type: "broadcast",
-                createdBy: "admin",
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                read: false,
-                deleted: false
+                target: "all", title: title, message: message, type: "broadcast",
+                createdBy: "admin", timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                read: false, deleted: false
             });
-
-            showToast("Broadcast Notification Sent! ✅");
+            showToast("Broadcast Sent to all members! ✅");
             closeModal('modal-send-notification');
             document.getElementById('notif-title').value = '';
             document.getElementById('notif-message').value = '';
-
-        } catch (error) {
-            console.error("Broadcast Error:", error);
-            showToast("Failed to send broadcast ❌", "error");
-        } finally {
-            if (btn) {
-                btn.innerText = "Send Now";
-                btn.disabled = false;
-            }
+        } catch (error) { 
+            showToast("Error sending ❌", "error"); 
+        } finally { 
+            if (btn) { btn.innerText = "Send Now"; btn.disabled = false; } 
         }
     }
 
@@ -1406,9 +1370,8 @@
         // FIX 1 (INBOX ISSUE): Await fetchRequests entirely to block routing and UI renders until fresh live data arrives.
         showToast("Loading latest data... ⏳");
         await fetchRequests(role);
+        requestPushNotificationPermission(); // Point 5 integration
         setupNotificationsListener(currentUser.id);
-
-        requestPushNotificationPermission(); 
 
         if (role === 'Admin') {
             document.getElementById('admin-name-display').innerText = currentUser.name;
