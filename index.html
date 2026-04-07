@@ -510,6 +510,9 @@
                     serviceWorkerRegistration: registration 
                 });
                 if (token) {
+                    // 👇 यह लाइन आपका टोकन कंसोल में दिखा देगी!
+                    console.log("🔥 FCM Token Generated: ", token); 
+
                     // Save token to database (for Personal Notification)
                     await db.collection('users').doc(String(currentUser.id)).set({
                         fcmToken: token,
